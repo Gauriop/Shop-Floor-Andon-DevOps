@@ -1,4 +1,6 @@
+HEAD
 /* Shop-Floor Andon Dashboard styles */
+feature/severity-badge-colors
 * {
   box-sizing: border-box;
 }
@@ -206,6 +208,18 @@ tr:hover td {
 .badge.Critical {
   background: #3a1414;
   color: #f24b4b;
+
+  background: #cce5ff;
+  color: #004085;
+}
+.badge.Medium {
+  background: #fff3cd;
+  color: #856404;
+}
+.badge.Critical {
+  background: #f8d7da;
+  color: #721c24;
+  font-weight: bold;
 }
 .badge.Open {
   background: #3a2f14;
