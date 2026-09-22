@@ -1,1 +1,17 @@
-[]
+[
+  {
+    "id": "EVT-1790058981730",
+    "station": "Line 3 - Weld Station",
+    "issueType": "Machine Breakdown",
+    "severity": "Critical",
+    "status": "Open",
+    "notes": "Conveyor belt misaligned, causing weld defects on batch 214",
+    "timestamp": "2026-09-22T06:36:21.731Z",
+    "history": [
+      {
+        "status": "Open",
+        "at": "2026-09-22T06:36:21.731Z"
+      }
+    ]
+  }
+]
