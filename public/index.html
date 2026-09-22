@@ -1,105 +1,140 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Shop-Floor Andon Dashboard</title>
-<link rel="stylesheet" href="style.css">
-</head>
-<body>
-  <header>
-    <h1>🏭 Shop-Floor Andon Dashboard</h1>
-    <p class="subtitle">Real-time production issue tracking</p>
-  </header>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Shop-Floor Andon Dashboard</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header>
+      <span id="lastUpdated" style="font-size: 0.85em; color: #888"></span>
+      <h1>🏭 Shop-Floor Andon Dashboard</h1>
+      <p class="subtitle">Real-time production issue tracking</p>
+    </header>
 
-  <main>
-    <!-- Summary Indicators -->
-    <section class="summary-cards" id="summaryCards">
-      <div class="card total"><span class="num" id="sTotal">0</span><span class="label">Total Events</span></div>
-      <div class="card open"><span class="num" id="sOpen">0</span><span class="label">Open</span></div>
-      <div class="card progress"><span class="num" id="sProgress">0</span><span class="label">In-Progress</span></div>
-      <div class="card resolved"><span class="num" id="sResolved">0</span><span class="label">Resolved</span></div>
-      <div class="card critical"><span class="num" id="sCritical">0</span><span class="label">Critical Open</span></div>
-    </section>
+    <main>
+      <!-- Summary Indicators -->
+      <section class="summary-cards" id="summaryCards">
+        <div class="card total">
+          <span class="num" id="sTotal">0</span
+          ><span class="label">Total Events</span>
+        </div>
+        <div class="card open">
+          <span class="num" id="sOpen">0</span><span class="label">Open</span>
+        </div>
+        <div class="card progress">
+          <span class="num" id="sProgress">0</span
+          ><span class="label">In-Progress</span>
+        </div>
+        <div class="card resolved">
+          <span class="num" id="sResolved">0</span
+          ><span class="label">Resolved</span>
+        </div>
+        <div class="card critical">
+          <span class="num" id="sCritical">0</span
+          ><span class="label">Critical Open</span>
+        </div>
+      </section>
 
-    <!-- Alerts -->
-    <section id="alertsSection" class="alerts-section" style="display:none;">
-      <h2>⚠️ Critical Alerts</h2>
-      <div id="alertsList" class="alerts-list"></div>
-    </section>
+      <!-- Alerts -->
+      <section id="alertsSection" class="alerts-section" style="display: none">
+        <h2>⚠️ Critical Alerts</h2>
+        <div id="alertsList" class="alerts-list"></div>
+      </section>
 
-    <div class="grid">
-      <!-- Event Entry Form -->
-      <section class="panel">
-        <h2>Log New Event</h2>
-        <form id="eventForm">
-          <label>Station
-            <input type="text" id="station" placeholder="e.g. Line 3 - Weld Station" required>
-          </label>
-          <label>Issue Type
-            <select id="issueType" required>
-              <option value="">Select...</option>
-              <option>Machine Breakdown</option>
-              <option>Material Shortage</option>
-              <option>Quality Issue</option>
-              <option>Process Delay</option>
-              <option>Other</option>
+      <div class="grid">
+        <!-- Event Entry Form -->
+        <section class="panel">
+          <h2>Log New Event</h2>
+          <form id="eventForm">
+            <label
+              >Station
+              <input
+                type="text"
+                id="station"
+                placeholder="e.g. Line 3 - Weld Station"
+                required
+              />
+            </label>
+            <label
+              >Issue Type
+              <select id="issueType" required>
+                <option value="">Select...</option>
+                <option>Machine Breakdown</option>
+                <option>Material Shortage</option>
+                <option>Quality Issue</option>
+                <option>Process Delay</option>
+                <option>Other</option>
+              </select>
+            </label>
+            <label
+              >Severity
+              <select id="severity" required>
+                <option value="">Select...</option>
+                <option>Low</option>
+                <option>Medium</option>
+                <option>Critical</option>
+              </select>
+            </label>
+            <label
+              >Notes
+              <textarea id="notes" placeholder="Optional details..."></textarea>
+            </label>
+            <button type="submit">Log Event</button>
+          </form>
+        </section>
+
+        <!-- Dashboard / Table -->
+        <section class="panel wide">
+          <h2>Event Dashboard</h2>
+          <div class="filters">
+            <input
+              type="text"
+              id="searchBox"
+              placeholder="🔍 Search station, issue, notes..."
+            />
+            <select id="statusFilter">
+              <option value="">All Statuses</option>
+              <option>Open</option>
+              <option>In-Progress</option>
+              <option>Resolved</option>
             </select>
-          </label>
-          <label>Severity
-            <select id="severity" required>
-              <option value="">Select...</option>
+            <select id="severityFilter">
+              <option value="">All Severities</option>
               <option>Low</option>
               <option>Medium</option>
               <option>Critical</option>
             </select>
-          </label>
-          <label>Notes
-            <textarea id="notes" placeholder="Optional details..."></textarea>
-          </label>
-          <button type="submit">Log Event</button>
-        </form>
-      </section>
+          </div>
+          <table id="eventsTable">
+            <thead>
+              <tr>
+                <th>Station</th>
+                <th>Issue</th>
+                <th>Severity</th>
+                <th>Status</th>
+                <th>Logged</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="eventsBody"></tbody>
+          </table>
+          <p id="emptyState" class="empty-state" style="display: none">
+            No events yet. Log one to get started.
+          </p>
+        </section>
+      </div>
+    </main>
 
-      <!-- Dashboard / Table -->
-      <section class="panel wide">
-        <h2>Event Dashboard</h2>
-        <div class="filters">
-          <input type="text" id="searchBox" placeholder="🔍 Search station, issue, notes...">
-          <select id="statusFilter">
-            <option value="">All Statuses</option>
-            <option>Open</option>
-            <option>In-Progress</option>
-            <option>Resolved</option>
-          </select>
-          <select id="severityFilter">
-            <option value="">All Severities</option>
-            <option>Low</option>
-            <option>Medium</option>
-            <option>Critical</option>
-          </select>
-        </div>
-        <table id="eventsTable">
-          <thead>
-            <tr>
-              <th>Station</th><th>Issue</th><th>Severity</th><th>Status</th><th>Logged</th><th></th>
-            </tr>
-          </thead>
-          <tbody id="eventsBody"></tbody>
-        </table>
-        <p id="emptyState" class="empty-state" style="display:none;">No events yet. Log one to get started.</p>
-      </section>
+    <!-- Drill-down modal -->
+    <div id="modalOverlay" class="modal-overlay" style="display: none">
+      <div class="modal">
+        <button class="modal-close" id="modalClose">&times;</button>
+        <div id="modalContent"></div>
+      </div>
     </div>
-  </main>
 
-  <!-- Drill-down modal -->
-  <div id="modalOverlay" class="modal-overlay" style="display:none;">
-    <div class="modal">
-      <button class="modal-close" id="modalClose">&times;</button>
-      <div id="modalContent"></div>
-    </div>
-  </div>
-
-  <script src="app.js"></script>
-</body>
+    <script src="app.js"></script>
+  </body>
 </html>
