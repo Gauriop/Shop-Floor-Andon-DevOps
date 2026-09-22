@@ -1,0 +1,12 @@
+{
+  "name": "shop-floor-andon-dashboard",
+  "version": "0.1.0",
+  "description": "Shop-Floor Andon Dashboard - MVP for real-time production issue logging and monitoring",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
