@@ -1,0 +1,77 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Log New Event</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 30px;
+        background: #f4f4f4;
+      }
+      form {
+        background: #fff;
+        padding: 20px;
+        border-radius: 6px;
+        max-width: 400px;
+      }
+      label {
+        display: block;
+        margin-top: 12px;
+        font-weight: bold;
+      }
+      input,
+      select {
+        width: 100%;
+        padding: 8px;
+        margin-top: 4px;
+        box-sizing: border-box;
+      }
+      button {
+        margin-top: 18px;
+        padding: 10px 20px;
+        background: #333;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      a {
+        display: inline-block;
+        margin-bottom: 15px;
+      }
+    </style>
+  </head>
+  <body>
+    <a th:href="@{/events}">&larr; Back to Dashboard</a>
+    <h1>Log New Event</h1>
+    <form th:action="@{/events}" th:object="${event}" method="post">
+      <label>Station</label>
+      <input
+        type="text"
+        th:field="*{station}"
+        required
+        placeholder="e.g. Line 3 - Assembly"
+      />
+
+      <label>Issue Type</label>
+      <input
+        type="text"
+        th:field="*{issueType}"
+        required
+        placeholder="e.g. Machine Breakdown"
+      />
+
+      <label>Severity</label>
+      <select th:field="*{severity}">
+        <option
+          th:each="s : ${severities}"
+          th:value="${s}"
+          th:text="${s}"
+        ></option>
+      </select>
+
+      <button type="submit">Log Event</button>
+    </form>
+  </body>
+</html>

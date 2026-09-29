@@ -1,0 +1,83 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Event Detail</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 30px;
+        background: #f4f4f4;
+      }
+      .card {
+        background: #fff;
+        padding: 20px;
+        border-radius: 6px;
+        max-width: 450px;
+      }
+      .row {
+        margin-bottom: 10px;
+      }
+      .label {
+        font-weight: bold;
+        display: inline-block;
+        width: 120px;
+      }
+      select {
+        padding: 8px;
+      }
+      button {
+        padding: 8px 16px;
+        background: #333;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-left: 8px;
+      }
+      a {
+        display: inline-block;
+        margin-bottom: 15px;
+      }
+    </style>
+  </head>
+  <body>
+    <a th:href="@{/events}">&larr; Back to Dashboard</a>
+    <h1>Event Detail</h1>
+    <div class="card">
+      <div class="row">
+        <span class="label">Station:</span>
+        <span th:text="${event.station}"></span>
+      </div>
+      <div class="row">
+        <span class="label">Issue Type:</span>
+        <span th:text="${event.issueType}"></span>
+      </div>
+      <div class="row">
+        <span class="label">Severity:</span>
+        <span th:text="${event.severity}"></span>
+      </div>
+      <div class="row">
+        <span class="label">Status:</span>
+        <span th:text="${event.status}"></span>
+      </div>
+      <div class="row">
+        <span class="label">Logged At:</span>
+        <span th:text="${event.timestamp}"></span>
+      </div>
+
+      <form th:action="@{'/events/' + ${event.id} + '/status'}" method="post">
+        <label class="label">Update Status:</label>
+        <select name="status">
+          <option
+            th:each="s : ${statuses}"
+            th:value="${s}"
+            th:text="${s}"
+            th:selected="${s == event.status}"
+          ></option>
+        </select>
+        <button type="submit">Update</button>
+      </form>
+    </div>
+  </body>
+</html>
