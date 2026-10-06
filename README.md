@@ -54,3 +54,14 @@ See project board / weekly deliverables for current DevOps pipeline progress (Je
 Academic project — for coursework purposes.
 
 <!-- testing Jenkins auto-trigger -->
+
+## Testing (Week 9)
+
+Selenium WebDriver suite: 5 critical user journeys (dashboard load, log event,
+search, status drill-down, critical alert). Runs headless Chrome via Maven.
+
+    mvn clean test
+
+- Test plan: `docs/TEST_PLAN.md`
+- Failure screenshots: `target/selenium-screenshots/`
+- HTML report: `mvn surefire-report:report` then open `target/reports/surefire.html`
