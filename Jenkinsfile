@@ -15,7 +15,7 @@ pipeline {
         // Release the jar file lock: stop the previously deployed app before building
         stage('Stop Previous App') {
             steps {
-                bat 'powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort %PORT% -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }" || echo No previous instance running'
+                bat 'powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort %PORT% -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }; exit 0"'
             }
         }
 
