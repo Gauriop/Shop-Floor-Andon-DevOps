@@ -12,6 +12,13 @@ pipeline {
             }
         }
 
+        // Release the jar file lock: stop the previously deployed app before building
+        stage('Stop Previous App') {
+            steps {
+                bat 'powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort %PORT% -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }" || echo No previous instance running'
+            }
+        }
+
         stage('Build') {
             steps {
                 bat 'mvn -B clean compile'
@@ -45,7 +52,6 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                bat "taskkill /F /IM java.exe /FI \"WINDOWTITLE eq andon*\" || echo No previous instance running"
                 withEnv(['JENKINS_NODE_COOKIE=dontKillMe', 'BUILD_ID=dontKillMe']) {
                     bat "start \"andon-app\" cmd /c java -jar target\\andon-dashboard-0.1.0.jar --server.port=%PORT%"
                 }
