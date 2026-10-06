@@ -52,9 +52,13 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                withEnv(['JENKINS_NODE_COOKIE=dontKillMe', 'BUILD_ID=dontKillMe']) {
-                    bat "start \"andon-app\" cmd /c java -jar target\\andon-dashboard-0.1.0.jar --server.port=%PORT%"
-                }
+                powershell '''
+                $ws = $env:WORKSPACE
+                $jar = Join-Path $ws "target\\andon-dashboard-0.1.0.jar"
+                $log = Join-Path $ws "app.log"
+                $cmd = "cmd /c java -jar `"$jar`" --server.port=$env:PORT > `"$log`" 2>&1"
+                Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{ CommandLine = $cmd; CurrentDirectory = $ws } | Out-Null
+                '''
             }
         }
     }
