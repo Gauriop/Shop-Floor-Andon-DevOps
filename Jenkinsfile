@@ -11,30 +11,54 @@ pipeline {
                 git branch: 'develop', url: 'https://github.com/Gauriop/Shop-Floor-Andon-DevOps.git'
             }
         }
+
         stage('Build') {
             steps {
-                bat 'mvn clean package -DskipTests'
+                bat 'mvn -B clean compile'
             }
         }
+
+        // Week 10: Selenium quality gate.
+        // If any test fails, Package and Deploy are skipped automatically.
+        stage('Test') {
+            steps {
+                bat 'mvn -B test'
+            }
+            post {
+                always {
+                    junit testResults: 'target/surefire-reports/*.xml', allowEmptyResults: true
+                    archiveArtifacts artifacts: 'target/selenium-screenshots/*.png', allowEmptyArchive: true
+                }
+            }
+        }
+
         stage('Package') {
             steps {
-                bat 'echo Packaging complete - JAR ready in target/'
+                bat 'mvn -B package -DskipTests'
+            }
+            post {
+                success {
+                    archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+                }
             }
         }
+
         stage('Deploy') {
             steps {
                 bat "taskkill /F /IM java.exe /FI \"WINDOWTITLE eq andon*\" || echo No previous instance running"
-                bat "start \"andon-app\" cmd /c java -jar target\\andon-dashboard-0.1.0.jar --server.port=%PORT%"
+                withEnv(['JENKINS_NODE_COOKIE=dontKillMe', 'BUILD_ID=dontKillMe']) {
+                    bat "start \"andon-app\" cmd /c java -jar target\\andon-dashboard-0.1.0.jar --server.port=%PORT%"
+                }
             }
         }
     }
 
     post {
         success {
-            echo 'Pipeline completed successfully. App deployed.'
+            echo 'Pipeline completed successfully. Tests passed and app deployed.'
         }
         failure {
-            echo 'Pipeline failed.'
+            echo 'Pipeline failed. Check Test Result and archived screenshots. Deployment was skipped if tests failed.'
         }
     }
 }
