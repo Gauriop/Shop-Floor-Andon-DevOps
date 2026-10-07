@@ -86,39 +86,27 @@ pipeline {
 
         stage('Docker Push') {
             steps {
-
                 withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-creds',
-                    usernameVariable: 'DH_USER',
-                    passwordVariable: 'DH_PASS'
-                )]) {
-
-                    powershell '''
-                        Write-Host "DH_USER = [$env:DH_USER]"
-                        Write-Host "DH_PASS exists = $([string]::IsNullOrEmpty($env:DH_PASS) -eq $false)"
-                        Write-Host "DH_PASS length = $($env:DH_PASS.Length)"
-
-                        $env:DH_PASS | docker login -u $env:DH_USER --password-stdin
-
-                        Write-Host "Docker login exit code = $LASTEXITCODE"
-
-                        if ($LASTEXITCODE -ne 0) {
-                            exit 1
-                        }
-                    '''
-                }
-
-                bat "docker push ${params.DOCKER_USER}/${env.IMAGE_NAME}:${env.IMAGE_VERSION}"
-                bat "docker push ${params.DOCKER_USER}/${env.IMAGE_NAME}:latest"
-            }
-
-            post {
-                always {
-                    bat 'docker logout || exit /b 0'
-                }
-            }
+                credentialsId: 'dockerhub-creds',
+                usernameVariable: 'DH_USER',
+                passwordVariable: 'DH_PASS'
+        )]) {
+            bat '''
+                echo %DH_PASS% | docker login -u %DH_USER% --password-stdin
+                if errorlevel 1 exit /b 1
+            '''
         }
 
+        bat "docker push ${params.DOCKER_USER}/${env.IMAGE_NAME}:${env.IMAGE_VERSION}"
+        bat "docker push ${params.DOCKER_USER}/${env.IMAGE_NAME}:latest"
+    }
+
+    post {
+        always {
+            bat 'docker logout || exit /b 0'
+        }
+    }
+}
         stage('Deploy Container') {
             steps {
                 // Remove the previous container if one exists
