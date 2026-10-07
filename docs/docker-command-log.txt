@@ -1,0 +1,75 @@
+﻿**********************
+Windows PowerShell transcript start
+Start time: 20261007143557
+Username: LAPTOP-3MMBR4HB\gauri
+RunAs User: LAPTOP-3MMBR4HB\gauri
+Configuration Name: 
+Machine: LAPTOP-3MMBR4HB (Microsoft Windows NT 10.0.26200.0)
+Host Application: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -noexit -command try { . "c:\Users\gauri\AppData\Local\Programs\Microsoft VS Code\07f806f999\resources\app\out\vs\workbench\contrib\terminal\common\scripts\shellIntegration.ps1" } catch {}
+Process ID: 22320
+PSVersion: 5.1.26100.9444
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.9444
+BuildVersion: 10.0.26100.9444
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+Transcript started, output file is docs\docker-command-log.txt
+]633;D;0]633;A]633;P;Cwd=C:\x5cDev\x5cShop-Floor-Andon-DevOpsPS C:\Dev\Shop-Floor-Andon-DevOps> ]633;B
+PS>docker --version
+docker images andon-dashboard
+docker ps
+
+
+
+]633;D;0]633;A]633;P;Cwd=C:\x5cDev\x5cShop-Floor-Andon-DevOpsPS C:\Dev\Shop-Floor-Andon-DevOps> ]633;B
+PS>docker logs andon-app
+docker inspect andon-app --format "Status: {{.State.Status}}  IP: {{.NetworkSettings.IPAddress}}  Image: {{.Config.Image}}"
+docker image inspect andon-dashboard:1.0 --format "Size: {{.Size}}  Created: {{.Created}}  OS/Arch: {{.Os}}/{{.Architecture}}"
+docker history andon-dashboard:1.0
+docker stats andon-app --no-stream
+
+
+
+
+
+]633;D;0]633;A]633;P;Cwd=C:\x5cDev\x5cShop-Floor-Andon-DevOpsPS C:\Dev\Shop-Floor-Andon-DevOps> ]633;B
+PS>docker inspect andon-app --format "Status: {{.State.Status}}  Image: {{.Config.Image}}  Ports: {{.NetworkSettings.Ports}}"
+docker inspect andon-app --format "{{range .NetworkSettings.Networks}}Network IP: {{.IPAddress}}{{end}}"
+Status: running  Image: andon-dashboard:1.0  Ports: map[8081/tcp:[{0.0.0.0 8082} {:: 80
+82}]]
+Network IP: 172.17.0.2
+]633;D;0]633;A]633;P;Cwd=C:\x5cDev\x5cShop-Floor-Andon-DevOpsPS C:\Dev\Shop-Floor-Andon-DevOps> ]633;B
+PS>docker stop andon-app
+docker ps -a
+docker start andon-app
+docker restart andon-app
+docker ps
+docker stop andon-app
+docker rm andon-app
+docker ps -a
+andon-app
+CONTAINER ID   IMAGE                 COMMAND               CREATED         STATUS
+                          PORTS     NAMES
+40c2223770ed   andon-dashboard:1.0   "java -jar app.jar"   4 minutes ago   Exited (143)
+ Less than a second ago             andon-app
+andon-app
+andon-app
+
+
+
+
+]633;D;0]633;A]633;P;Cwd=C:\x5cDev\x5cShop-Floor-Andon-DevOpsPS C:\Dev\Shop-Floor-Andon-DevOps> ]633;B
+PS>docker run -d --name andon-app -p 8082:8081 andon-dashboard:1.0
+docker ps
+curl.exe -I http://localhost:8082/events
+Stop-Transcript
+
+
+
+**********************
+Windows PowerShell transcript end
+End time: 20261007143947
+**********************
