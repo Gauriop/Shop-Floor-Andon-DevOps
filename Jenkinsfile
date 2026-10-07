@@ -84,7 +84,7 @@ pipeline {
             }
         }
 
-       stage('Docker Push') {
+   stage('Docker Push') {
     steps {
         withCredentials([usernamePassword(
             credentialsId: 'dockerhub-creds',
@@ -92,13 +92,14 @@ pipeline {
             passwordVariable: 'DH_PASS'
         )]) {
             powershell '''
-                Write-Host "Docker login user: $env:DH_USER"
-
-                $securePass = ConvertTo-SecureString $env:DH_PASS -AsPlainText -Force
-                $credential = New-Object System.Management.Automation.PSCredential($env:DH_USER, $securePass)
-
-                $credential.GetNetworkCredential().Password | docker login -u $env:DH_USER --password-stdin
-
+                Write-Host "DH_USER = [$env:DH_USER]"
+                Write-Host "DH_PASS exists = $([string]::IsNullOrEmpty($env:DH_PASS) -eq $false)"
+                Write-Host "DH_PASS length = $($env:DH_PASS.Length)"
+                
+                $env:DH_PASS | docker login -u $env:DH_USER --password-stdin
+                
+                Write-Host "Docker login exit code = $LASTEXITCODE"
+                
                 if ($LASTEXITCODE -ne 0) {
                     exit 1
                 }
@@ -108,7 +109,7 @@ pipeline {
         bat "docker push ${params.DOCKER_USER}/${env.IMAGE_NAME}:${env.IMAGE_VERSION}"
         bat "docker push ${params.DOCKER_USER}/${env.IMAGE_NAME}:latest"
     }
-
+}
     post {
         always {
             bat 'docker logout || exit /b 0'
