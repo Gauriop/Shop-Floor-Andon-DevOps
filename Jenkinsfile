@@ -7,7 +7,7 @@ pipeline {
 
     parameters {
         string(name: 'PORT', defaultValue: '8081', description: 'Port for the jar deployment (Week 8)')
-        string(name: 'DOCKER_USER', defaultValue: 'YOUR_DOCKERHUB_USERNAME', description: 'Docker Hub username')
+        string(name: 'DOCKER_USER', defaultValue: 'gauriic20', description: 'Docker Hub username')
         string(name: 'CONTAINER_PORT', defaultValue: '8083', description: 'Host port for the Docker container deployment')
     }
 
