@@ -84,26 +84,37 @@ pipeline {
             }
         }
 
-        stage('Docker Push') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds',
-                                                  usernameVariable: 'DH_USER',
-                                                  passwordVariable: 'DH_PASS')]) {
-                    // Single-quoted so Groovy never interpolates the secret
-                    powershell '''
-                    $env:DH_PASS | docker login -u $env:DH_USER --password-stdin
-                    if ($LASTEXITCODE -ne 0) { exit 1 }
-                    '''
+       stage('Docker Push') {
+    steps {
+        withCredentials([usernamePassword(
+            credentialsId: 'dockerhub-creds',
+            usernameVariable: 'DH_USER',
+            passwordVariable: 'DH_PASS'
+        )]) {
+            powershell '''
+                Write-Host "Docker login user: $env:DH_USER"
+
+                $securePass = ConvertTo-SecureString $env:DH_PASS -AsPlainText -Force
+                $credential = New-Object System.Management.Automation.PSCredential($env:DH_USER, $securePass)
+
+                $credential.GetNetworkCredential().Password | docker login -u $env:DH_USER --password-stdin
+
+                if ($LASTEXITCODE -ne 0) {
+                    exit 1
                 }
-                bat "docker push ${params.DOCKER_USER}/${env.IMAGE_NAME}:${env.IMAGE_VERSION}"
-                bat "docker push ${params.DOCKER_USER}/${env.IMAGE_NAME}:latest"
-            }
-            post {
-                always {
-                    bat 'docker logout || exit /b 0'
-                }
-            }
+            '''
         }
+
+        bat "docker push ${params.DOCKER_USER}/${env.IMAGE_NAME}:${env.IMAGE_VERSION}"
+        bat "docker push ${params.DOCKER_USER}/${env.IMAGE_NAME}:latest"
+    }
+
+    post {
+        always {
+            bat 'docker logout || exit /b 0'
+        }
+    }
+}
 
         stage('Deploy Container') {
             steps {
