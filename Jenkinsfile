@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    options {
+        disableConcurrentBuilds()
+    }
+
     parameters {
         string(name: 'PORT', defaultValue: '8081', description: 'Port for the jar deployment (Week 8)')
         string(name: 'DOCKER_USER', defaultValue: 'YOUR_DOCKERHUB_USERNAME', description: 'Docker Hub username')
