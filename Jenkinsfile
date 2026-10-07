@@ -2,7 +2,15 @@ pipeline {
     agent any
 
     parameters {
-        string(name: 'PORT', defaultValue: '8081', description: 'Port to deploy the app on')
+        string(name: 'PORT', defaultValue: '8081', description: 'Port for the jar deployment (Week 8)')
+        string(name: 'DOCKER_USER', defaultValue: 'YOUR_DOCKERHUB_USERNAME', description: 'Docker Hub username')
+        string(name: 'CONTAINER_PORT', defaultValue: '8083', description: 'Host port for the Docker container deployment')
+    }
+
+    environment {
+        IMAGE_NAME     = 'andon-dashboard'
+        IMAGE_VERSION  = "1.0.${env.BUILD_NUMBER}"
+        CONTAINER_NAME = 'andon-app-ci'
     }
 
     stages {
@@ -26,7 +34,7 @@ pipeline {
         }
 
         // Week 10: Selenium quality gate.
-        // If any test fails, Package and Deploy are skipped automatically.
+        // If any test fails, everything after this stage is skipped automatically.
         stage('Test') {
             steps {
                 bat 'mvn -B test'
@@ -61,14 +69,70 @@ pipeline {
                 '''
             }
         }
+
+        // ---------------- Week 12: Jenkins-Docker continuous deployment ----------------
+
+        stage('Docker Build') {
+            steps {
+                bat "docker version --format \"Docker server: {{.Server.Version}}\""
+                bat "docker build -t ${params.DOCKER_USER}/${env.IMAGE_NAME}:${env.IMAGE_VERSION} -t ${params.DOCKER_USER}/${env.IMAGE_NAME}:latest ."
+                bat "docker images ${params.DOCKER_USER}/${env.IMAGE_NAME}"
+            }
+        }
+
+        stage('Docker Push') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds',
+                                                  usernameVariable: 'DH_USER',
+                                                  passwordVariable: 'DH_PASS')]) {
+                    // Single-quoted so Groovy never interpolates the secret
+                    powershell '''
+                    $env:DH_PASS | docker login -u $env:DH_USER --password-stdin
+                    if ($LASTEXITCODE -ne 0) { exit 1 }
+                    '''
+                }
+                bat "docker push ${params.DOCKER_USER}/${env.IMAGE_NAME}:${env.IMAGE_VERSION}"
+                bat "docker push ${params.DOCKER_USER}/${env.IMAGE_NAME}:latest"
+            }
+            post {
+                always {
+                    bat 'docker logout || exit /b 0'
+                }
+            }
+        }
+
+        stage('Deploy Container') {
+            steps {
+                // Remove the previous container if one exists, then start a fresh one
+                bat "docker rm -f ${env.CONTAINER_NAME} || exit /b 0"
+                bat "docker run -d --name ${env.CONTAINER_NAME} -p ${params.CONTAINER_PORT}:8081 ${params.DOCKER_USER}/${env.IMAGE_NAME}:${env.IMAGE_VERSION}"
+            }
+        }
+
+        stage('Verify Container') {
+            steps {
+                powershell """
+                \$url = "http://localhost:${params.CONTAINER_PORT}/events"
+                \$ok = \$false
+                for (\$i = 1; \$i -le 15; \$i++) {
+                    try {
+                        \$r = Invoke-WebRequest -Uri \$url -UseBasicParsing -TimeoutSec 5
+                        if (\$r.StatusCode -eq 200) { \$ok = \$true; break }
+                    } catch { Start-Sleep -Seconds 3 }
+                }
+                docker ps --filter "name=${env.CONTAINER_NAME}"
+                if (\$ok) { Write-Output "HEALTH CHECK PASSED: \$url returned 200" } else { Write-Output "HEALTH CHECK FAILED"; docker logs ${env.CONTAINER_NAME}; exit 1 }
+                """
+            }
+        }
     }
 
     post {
         success {
-            echo 'Pipeline completed successfully. Tests passed and app deployed.'
+            echo "Commit-to-container complete. Image ${params.DOCKER_USER}/${env.IMAGE_NAME}:${env.IMAGE_VERSION} pushed and running on port ${params.CONTAINER_PORT}."
         }
         failure {
-            echo 'Pipeline failed. Check Test Result and archived screenshots. Deployment was skipped if tests failed.'
+            echo 'Pipeline failed. Check Test Result, archived screenshots and the Docker stage output. Later stages are skipped on failure.'
         }
     }
 }
