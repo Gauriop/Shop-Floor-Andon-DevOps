@@ -86,27 +86,32 @@ pipeline {
 
         stage('Docker Push') {
             steps {
-                withCredentials([usernamePassword(
-                credentialsId: 'dockerhub-creds',
-                usernameVariable: 'DH_USER',
-                passwordVariable: 'DH_PASS'
-        )]) {
-            bat '''
-                echo %DH_PASS% | docker login -u %DH_USER% --password-stdin
-                if errorlevel 1 exit /b 1
-            '''
+                // Use a clean docker config folder so the Jenkins service account
+                // does not depend on a Docker Desktop credential helper.
+                withEnv(["DOCKER_CONFIG=${env.WORKSPACE}\\docker-config"]) {
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-creds',
+                                                      usernameVariable: 'DH_USER',
+                                                      passwordVariable: 'DH_PASS')]) {
+                        powershell '''
+                        New-Item -ItemType Directory -Force -Path $env:DOCKER_CONFIG | Out-Null
+                        $env:DH_PASS | docker login -u $env:DH_USER --password-stdin
+                        if ($LASTEXITCODE -ne 0) { exit 1 }
+                        '''
+                        bat "docker push ${params.DOCKER_USER}/${env.IMAGE_NAME}:${env.IMAGE_VERSION}"
+                        bat "docker push ${params.DOCKER_USER}/${env.IMAGE_NAME}:latest"
+                    }
+                }
+            }
+            post {
+                always {
+                    withEnv(["DOCKER_CONFIG=${env.WORKSPACE}\\docker-config"]) {
+                        bat 'docker logout || exit /b 0'
+                    }
+                    bat "if exist \"${env.WORKSPACE}\\docker-config\" rmdir /s /q \"${env.WORKSPACE}\\docker-config\""
+                }
+            }
         }
 
-        bat "docker push ${params.DOCKER_USER}/${env.IMAGE_NAME}:${env.IMAGE_VERSION}"
-        bat "docker push ${params.DOCKER_USER}/${env.IMAGE_NAME}:latest"
-    }
-
-    post {
-        always {
-            bat 'docker logout || exit /b 0'
-        }
-    }
-}
         stage('Deploy Container') {
             steps {
                 // Remove the previous container if one exists
@@ -160,5 +165,3 @@ pipeline {
         }
     }
 }
-
-
