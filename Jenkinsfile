@@ -1,3 +1,4 @@
+```groovy
 pipeline {
     agent any
 
@@ -18,13 +19,14 @@ pipeline {
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 git branch: 'develop', url: 'https://github.com/Gauriop/Shop-Floor-Andon-DevOps.git'
             }
         }
 
-        // Release the jar file lock: stop the previously deployed app before building
+        // Release the jar file lock: stop the previously deployed app
         stage('Stop Previous App') {
             steps {
                 bat 'powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort %PORT% -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }; exit 0"'
@@ -37,8 +39,7 @@ pipeline {
             }
         }
 
-        // Week 10: Selenium quality gate.
-        // If any test fails, everything after this stage is skipped automatically.
+        // Week 10: Selenium quality gate
         stage('Test') {
             steps {
                 bat 'mvn -B test'
@@ -84,43 +85,47 @@ pipeline {
             }
         }
 
-   stage('Docker Push') {
-    steps {
-        withCredentials([usernamePassword(
-            credentialsId: 'dockerhub-creds',
-            usernameVariable: 'DH_USER',
-            passwordVariable: 'DH_PASS'
-        )]) {
-            powershell '''
-                Write-Host "DH_USER = [$env:DH_USER]"
-                Write-Host "DH_PASS exists = $([string]::IsNullOrEmpty($env:DH_PASS) -eq $false)"
-                Write-Host "DH_PASS length = $($env:DH_PASS.Length)"
-                
-                $env:DH_PASS | docker login -u $env:DH_USER --password-stdin
-                
-                Write-Host "Docker login exit code = $LASTEXITCODE"
-                
-                if ($LASTEXITCODE -ne 0) {
-                    exit 1
-                }
-            '''
-        }
+        stage('Docker Push') {
+            steps {
 
-        bat "docker push ${params.DOCKER_USER}/${env.IMAGE_NAME}:${env.IMAGE_VERSION}"
-        bat "docker push ${params.DOCKER_USER}/${env.IMAGE_NAME}:latest"
-    }
-}
-    post {
-        always {
-            bat 'docker logout || exit /b 0'
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'DH_USER',
+                    passwordVariable: 'DH_PASS'
+                )]) {
+
+                    powershell '''
+                        Write-Host "DH_USER = [$env:DH_USER]"
+                        Write-Host "DH_PASS exists = $([string]::IsNullOrEmpty($env:DH_PASS) -eq $false)"
+                        Write-Host "DH_PASS length = $($env:DH_PASS.Length)"
+
+                        $env:DH_PASS | docker login -u $env:DH_USER --password-stdin
+
+                        Write-Host "Docker login exit code = $LASTEXITCODE"
+
+                        if ($LASTEXITCODE -ne 0) {
+                            exit 1
+                        }
+                    '''
+                }
+
+                bat "docker push ${params.DOCKER_USER}/${env.IMAGE_NAME}:${env.IMAGE_VERSION}"
+                bat "docker push ${params.DOCKER_USER}/${env.IMAGE_NAME}:latest"
+            }
+
+            post {
+                always {
+                    bat 'docker logout || exit /b 0'
+                }
+            }
         }
-    }
-}
 
         stage('Deploy Container') {
             steps {
-                // Remove the previous container if one exists, then start a fresh one
+                // Remove the previous container if one exists
                 bat "docker rm -f ${env.CONTAINER_NAME} || exit /b 0"
+
+                // Start the new container
                 bat "docker run -d --name ${env.CONTAINER_NAME} -p ${params.CONTAINER_PORT}:8081 ${params.DOCKER_USER}/${env.IMAGE_NAME}:${env.IMAGE_VERSION}"
             }
         }
@@ -130,14 +135,29 @@ pipeline {
                 powershell """
                 \$url = "http://localhost:${params.CONTAINER_PORT}/events"
                 \$ok = \$false
+
                 for (\$i = 1; \$i -le 15; \$i++) {
                     try {
                         \$r = Invoke-WebRequest -Uri \$url -UseBasicParsing -TimeoutSec 5
-                        if (\$r.StatusCode -eq 200) { \$ok = \$true; break }
-                    } catch { Start-Sleep -Seconds 3 }
+
+                        if (\$r.StatusCode -eq 200) {
+                            \$ok = \$true
+                            break
+                        }
+                    } catch {
+                        Start-Sleep -Seconds 3
+                    }
                 }
+
                 docker ps --filter "name=${env.CONTAINER_NAME}"
-                if (\$ok) { Write-Output "HEALTH CHECK PASSED: \$url returned 200" } else { Write-Output "HEALTH CHECK FAILED"; docker logs ${env.CONTAINER_NAME}; exit 1 }
+
+                if (\$ok) {
+                    Write-Output "HEALTH CHECK PASSED: \$url returned 200"
+                } else {
+                    Write-Output "HEALTH CHECK FAILED"
+                    docker logs ${env.CONTAINER_NAME}
+                    exit 1
+                }
                 """
             }
         }
@@ -147,8 +167,11 @@ pipeline {
         success {
             echo "Commit-to-container complete. Image ${params.DOCKER_USER}/${env.IMAGE_NAME}:${env.IMAGE_VERSION} pushed and running on port ${params.CONTAINER_PORT}."
         }
+
         failure {
             echo 'Pipeline failed. Check Test Result, archived screenshots and the Docker stage output. Later stages are skipped on failure.'
         }
     }
 }
+`
+
