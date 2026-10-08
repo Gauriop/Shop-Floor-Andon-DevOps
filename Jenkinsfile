@@ -25,7 +25,6 @@ pipeline {
             }
         }
 
-        // Release the jar file lock: stop the previously deployed app
         stage('Stop Previous App') {
             steps {
                 bat 'powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort %PORT% -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }; exit 0"'
@@ -38,7 +37,6 @@ pipeline {
             }
         }
 
-        // Week 10: Selenium quality gate
         stage('Test') {
             steps {
                 bat 'mvn -B test'
@@ -74,8 +72,6 @@ pipeline {
             }
         }
 
-        // ---------------- Week 12: Jenkins-Docker continuous deployment ----------------
-
         stage('Docker Build') {
             steps {
                 bat "docker version --format \"Docker server: {{.Server.Version}}\""
@@ -86,14 +82,11 @@ pipeline {
 
         stage('Docker Push') {
             steps {
-                // Use a clean docker config folder so the Jenkins service account
-                // does not depend on a Docker Desktop credential helper.
                 withEnv(["DOCKER_CONFIG=${env.WORKSPACE}\\docker-config"]) {
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-creds',
                                                       usernameVariable: 'DH_USER',
                                                       passwordVariable: 'DH_PASS')]) {
                         bat 'if not exist "%DOCKER_CONFIG%" mkdir "%DOCKER_CONFIG%"'
-                        // Plain cmd login: no PowerShell piping involved. Jenkins masks the token in the log.
                         bat 'docker login -u %DH_USER% -p %DH_PASS%'
                         bat "docker push ${params.DOCKER_USER}/${env.IMAGE_NAME}:${env.IMAGE_VERSION}"
                         bat "docker push ${params.DOCKER_USER}/${env.IMAGE_NAME}:latest"
@@ -112,10 +105,7 @@ pipeline {
 
         stage('Deploy Container') {
             steps {
-                // Remove the previous container if one exists
                 bat "docker rm -f ${env.CONTAINER_NAME} || exit /b 0"
-
-                // Start the new container
                 bat "docker run -d --name ${env.CONTAINER_NAME} -p ${params.CONTAINER_PORT}:8081 ${params.DOCKER_USER}/${env.IMAGE_NAME}:${env.IMAGE_VERSION}"
             }
         }
@@ -125,22 +115,15 @@ pipeline {
                 powershell """
                 \$url = "http://localhost:${params.CONTAINER_PORT}/events"
                 \$ok = \$false
-
                 for (\$i = 1; \$i -le 15; \$i++) {
                     try {
                         \$r = Invoke-WebRequest -Uri \$url -UseBasicParsing -TimeoutSec 5
-
-                        if (\$r.StatusCode -eq 200) {
-                            \$ok = \$true
-                            break
-                        }
+                        if (\$r.StatusCode -eq 200) { \$ok = \$true; break }
                     } catch {
                         Start-Sleep -Seconds 3
                     }
                 }
-
                 docker ps --filter "name=${env.CONTAINER_NAME}"
-
                 if (\$ok) {
                     Write-Output "HEALTH CHECK PASSED: \$url returned 200"
                 } else {
@@ -152,3 +135,13 @@ pipeline {
             }
         }
     }
+
+    post {
+        success {
+            echo "Commit-to-container complete. Image ${params.DOCKER_USER}/${env.IMAGE_NAME}:${env.IMAGE_VERSION} pushed and running on port ${params.CONTAINER_PORT}."
+        }
+        failure {
+            echo 'Pipeline failed. Check Test Result, archived screenshots and the Docker stage output. Later stages are skipped on failure.'
+        }
+    }
+}
