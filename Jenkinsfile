@@ -93,19 +93,18 @@ pipeline {
                                                       usernameVariable: 'DH_USER',
                                                       passwordVariable: 'DH_PASS')]) {
                         powershell '''
-                        New-Item -ItemType Directory -Force -Path $env:DOCKER_CONFIG | Out-Null
-                        $user = $env:DH_USER.Trim()
-                        $pass = $env:DH_PASS.Trim()
+                            New-Item -ItemType Directory -Force -Path $env:DOCKER_CONFIG | Out-Null
+                            $user = $env:DH_USER.Trim()
+                            $pass = $env:DH_PASS.Trim()
 
-                        # Debug: one-way fingerprint of the secret (safe to show, cannot be reversed)
-                        $sha = [System.Security.Cryptography.SHA256]::Create()
-                        $fp = ([BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($pass))) -replace '-','').Substring(0,8)
-                        Write-Host "Secret fingerprint: $fp"
+                            # Windows PowerShell pipes UTF-8 *with BOM* to native exes under Jenkins;
+                            # the BOM corrupts the token. ASCII has no BOM.
+                            $OutputEncoding = [System.Text.Encoding]::ASCII
 
-                        Write-Host "Logging in as $user (secret length: $($pass.Length))"
-                        $pass | docker login -u $user --password-stdin
-                        if ($LASTEXITCODE -ne 0) { exit 1 }
-                        '''
+                            Write-Host "Logging in as $user"
+                            $pass | docker login -u $user --password-stdin
+                            if ($LASTEXITCODE -ne 0) { exit 1 }
+'''
                         bat "docker push ${params.DOCKER_USER}/${env.IMAGE_NAME}:${env.IMAGE_VERSION}"
                         bat "docker push ${params.DOCKER_USER}/${env.IMAGE_NAME}:latest"
                     }
