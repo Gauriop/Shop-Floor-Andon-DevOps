@@ -92,19 +92,9 @@ pipeline {
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-creds',
                                                       usernameVariable: 'DH_USER',
                                                       passwordVariable: 'DH_PASS')]) {
-                        powershell '''
-                            New-Item -ItemType Directory -Force -Path $env:DOCKER_CONFIG | Out-Null
-                            $user = $env:DH_USER.Trim()
-                            $pass = $env:DH_PASS.Trim()
-
-                            # Windows PowerShell pipes UTF-8 *with BOM* to native exes under Jenkins;
-                            # the BOM corrupts the token. ASCII has no BOM.
-                            $OutputEncoding = [System.Text.Encoding]::ASCII
-
-                            Write-Host "Logging in as $user"
-                            $pass | docker login -u $user --password-stdin
-                            if ($LASTEXITCODE -ne 0) { exit 1 }
-'''
+                        bat 'if not exist "%DOCKER_CONFIG%" mkdir "%DOCKER_CONFIG%"'
+                        // Plain cmd login: no PowerShell piping involved. Jenkins masks the token in the log.
+                        bat 'docker login -u %DH_USER% -p %DH_PASS%'
                         bat "docker push ${params.DOCKER_USER}/${env.IMAGE_NAME}:${env.IMAGE_VERSION}"
                         bat "docker push ${params.DOCKER_USER}/${env.IMAGE_NAME}:latest"
                     }
@@ -162,14 +152,3 @@ pipeline {
             }
         }
     }
-
-    post {
-        success {
-            echo "Commit-to-container complete. Image ${params.DOCKER_USER}/${env.IMAGE_NAME}:${env.IMAGE_VERSION} pushed and running on port ${params.CONTAINER_PORT}."
-        }
-
-        failure {
-            echo 'Pipeline failed. Check Test Result, archived screenshots and the Docker stage output. Later stages are skipped on failure.'
-        }
-    }
-}
