@@ -1,0 +1,16 @@
+[Unit]
+Description=Shop-Floor Andon Dashboard
+After=network.target
+
+[Service]
+User={{ andon_user }}
+Group={{ andon_group }}
+EnvironmentFile={{ andon_conf_dir }}/andon.env
+ExecStart=/usr/bin/java -jar {{ andon_jar_dest }}
+Restart=on-failure
+SuccessExitStatus=143
+StandardOutput=append:{{ andon_log_dir }}/andon.log
+StandardError=append:{{ andon_log_dir }}/andon.log
+
+[Install]
+WantedBy=multi-user.target

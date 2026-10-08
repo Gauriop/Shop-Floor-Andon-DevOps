@@ -1,0 +1,147 @@
+---
+# Week 13: Configuration management for the Shop-Floor Andon Dashboard node.
+# Covers: packages, users, folders, files, ports and services.
+- name: Configure Shop-Floor Andon Dashboard node
+  hosts: andon_nodes
+  become: true
+  vars:
+    andon_user: andon
+    andon_group: andon
+    andon_home: /opt/andon
+    andon_app_dir: /opt/andon/app
+    andon_log_dir: /var/log/andon
+    andon_conf_dir: /etc/andon
+    andon_port: 8085
+    andon_jar_dest: /opt/andon/app/andon-dashboard.jar
+    # Jar built on the Windows side (mvn -B package -DskipTests). Override with -e andon_jar_src=...
+    andon_jar_src: /mnt/c/Dev/Shop-Floor-Andon-DevOps/target/andon-dashboard-0.1.0.jar
+    andon_packages:
+      - openjdk-17-jre-headless
+      - curl
+      - ca-certificates
+
+  tasks:
+    # ---------- Packages ----------
+    - name: Install required packages
+      ansible.builtin.apt:
+        name: "{{ andon_packages }}"
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    # ---------- Users ----------
+    - name: Create service group
+      ansible.builtin.group:
+        name: "{{ andon_group }}"
+        system: true
+        state: present
+
+    - name: Create service user
+      ansible.builtin.user:
+        name: "{{ andon_user }}"
+        group: "{{ andon_group }}"
+        system: true
+        shell: /usr/sbin/nologin
+        home: "{{ andon_home }}"
+        create_home: false
+        state: present
+
+    # ---------- Folders ----------
+    - name: Create application, config and log directories
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: directory
+        owner: "{{ item.owner }}"
+        group: "{{ andon_group }}"
+        mode: "{{ item.mode }}"
+      loop:
+        - { path: "{{ andon_home }}", owner: "{{ andon_user }}", mode: "0755" }
+        - {
+            path: "{{ andon_app_dir }}",
+            owner: "{{ andon_user }}",
+            mode: "0755",
+          }
+        - {
+            path: "{{ andon_log_dir }}",
+            owner: "{{ andon_user }}",
+            mode: "0755",
+          }
+        - { path: "{{ andon_conf_dir }}", owner: root, mode: "0755" }
+
+    # ---------- Files ----------
+    - name: Check that the application jar exists on the control side
+      ansible.builtin.stat:
+        path: "{{ andon_jar_src }}"
+      register: jar_stat
+      become: false
+
+    - name: Fail early if the jar is missing
+      ansible.builtin.fail:
+        msg: "Jar not found at {{ andon_jar_src }}. Build it first with: mvn -B package -DskipTests"
+      when: not jar_stat.stat.exists
+
+    - name: Deploy application jar
+      ansible.builtin.copy:
+        src: "{{ andon_jar_src }}"
+        dest: "{{ andon_jar_dest }}"
+        owner: "{{ andon_user }}"
+        group: "{{ andon_group }}"
+        mode: "0644"
+      notify: Restart andon
+
+    - name: Write environment file (port and runtime settings)
+      ansible.builtin.template:
+        src: andon.env.j2
+        dest: "{{ andon_conf_dir }}/andon.env"
+        owner: root
+        group: "{{ andon_group }}"
+        mode: "0640"
+      notify: Restart andon
+
+    # ---------- Service ----------
+    - name: Install systemd unit
+      ansible.builtin.template:
+        src: andon.service.j2
+        dest: /etc/systemd/system/andon.service
+        owner: root
+        group: root
+        mode: "0644"
+      notify:
+        - Reload systemd
+        - Restart andon
+
+    - name: Flush handlers so the unit is registered before starting it
+      ansible.builtin.meta: flush_handlers
+
+    - name: Enable and start the andon service
+      ansible.builtin.systemd:
+        name: andon
+        enabled: true
+        state: started
+
+    # ---------- Port / health check ----------
+    - name: Wait for the application port to listen
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: "{{ andon_port }}"
+        delay: 5
+        timeout: 90
+
+    - name: Health check the dashboard
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ andon_port }}/events"
+        status_code: 200
+      register: health
+      retries: 6
+      delay: 5
+      until: health.status == 200
+
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    - name: Restart andon
+      ansible.builtin.systemd:
+        name: andon
+        state: restarted

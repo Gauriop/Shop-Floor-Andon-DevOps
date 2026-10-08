@@ -1,0 +1,29 @@
+ERROR: Unhandled exception when retrieving 'DEFAULT_LOCAL_TMP': [Errno 30] Read-only file system: '/home/gauri/.ansible/tmp/ansible-local-1423g1vuuef5'
+
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/ansible/config/manager.py", line 545, in get_config_value
+    value, _drop = self.get_config_value_and_origin(config, cfile=cfile, plugin_type=plugin_type, plugin_name=plugin_name,
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                                    keys=keys, variables=variables, direct=direct)
+                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/ansible/config/manager.py", line 669, in get_config_value_and_origin
+    value = ensure_type(value, defs[config].get('type'), origin=origin, origin_ftype=origin_ftype)
+  File "/usr/lib/python3/dist-packages/ansible/config/manager.py", line 108, in ensure_type
+    value = _ensure_type(value, value_type, origin)
+  File "/usr/lib/python3/dist-packages/ansible/config/manager.py", line 182, in _ensure_type
+    value = tempfile.mkdtemp(prefix=prefix, dir=value)
+  File "/usr/lib/python3.14/tempfile.py", line 381, in mkdtemp
+OSError: [Errno 30] Read-only file system: '/home/gauri/.ansible/tmp/ansible-local-1423g1vuuef5'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/ansible/cli/__init__.py", line 93, in <module>
+    from ansible import constants as C
+  File "/usr/lib/python3/dist-packages/ansible/constants.py", line 188, in <module>
+    set_constant(setting, config.get_config_value(setting, variables=vars()))
+                          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/ansible/config/manager.py", line 550, in get_config_value
+    raise AnsibleError(f"Unhandled exception when retrieving {config!r}.") from ex
+ansible.errors.AnsibleError: Unhandled exception when retrieving 'DEFAULT_LOCAL_TMP': [Errno 30] Read-only file system: '/home/gauri/.ansible/tmp/ansible-local-1423g1vuuef5'
+
