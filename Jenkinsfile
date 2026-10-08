@@ -96,6 +96,12 @@ pipeline {
                         New-Item -ItemType Directory -Force -Path $env:DOCKER_CONFIG | Out-Null
                         $user = $env:DH_USER.Trim()
                         $pass = $env:DH_PASS.Trim()
+
+                        # Debug: one-way fingerprint of the secret (safe to show, cannot be reversed)
+                        $sha = [System.Security.Cryptography.SHA256]::Create()
+                        $fp = ([BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($pass))) -replace '-','').Substring(0,8)
+                        Write-Host "Secret fingerprint: $fp"
+
                         Write-Host "Logging in as $user (secret length: $($pass.Length))"
                         $pass | docker login -u $user --password-stdin
                         if ($LASTEXITCODE -ne 0) { exit 1 }
