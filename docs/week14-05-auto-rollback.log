@@ -1,0 +1,67 @@
+
+PLAY [Deploy a versioned release (automatic rollback on failure)] **************
+
+TASK [Gathering Facts] *********************************************************
+ok: [andon-node-1]
+
+TASK [Require release_version and release_jar] *********************************
+ok: [andon-node-1] => {
+    "changed": false,
+    "msg": "All assertions passed"
+}
+
+TASK [Check the new jar exists] ************************************************
+ok: [andon-node-1]
+
+TASK [Stop if the new jar is missing] ******************************************
+skipping: [andon-node-1]
+
+TASK [Create the releases folder] **********************************************
+ok: [andon-node-1]
+
+TASK [Find out which version is deployed now] **********************************
+ok: [andon-node-1]
+
+TASK [Keep the running jar as the previous release] ****************************
+ok: [andon-node-1]
+
+TASK [Record the previous version] *********************************************
+changed: [andon-node-1]
+
+TASK [Install the new jar] *****************************************************
+changed: [andon-node-1]
+
+TASK [Restart the service] *****************************************************
+changed: [andon-node-1]
+
+TASK [Wait for the port to open] ***********************************************
+fatal: [andon-node-1]: FAILED! => {"changed": false, "elapsed": 45, "msg": "Timeout when waiting for 127.0.0.1:8085"}
+
+TASK [Deploy failed - restore the previous jar] ********************************
+changed: [andon-node-1]
+
+TASK [Clear the failed state] **************************************************
+ok: [andon-node-1]
+
+TASK [Restart on the previous release] *****************************************
+changed: [andon-node-1]
+
+TASK [Wait for the port to open] ***********************************************
+ok: [andon-node-1]
+
+TASK [Health check after rollback] *********************************************
+ok: [andon-node-1]
+
+TASK [Rollback finished] *******************************************************
+ok: [andon-node-1] => {
+    "msg": "ROLLBACK COMPLETE: release 1.0.2-bad failed, node is back on 1.0.1"
+}
+
+PLAY RECAP *********************************************************************
+andon-node-1               : ok=15   changed=5    unreachable=0    failed=0    skipped=1    rescued=1    ignored=0   
+
+--- after the automatic rollback ---
+HTTP 200
+current version: 1.0.1
+jar fingerprint (must equal the one from step 2):
+994a66385e64f194689843da524dc28816534853fe20c64599e479c9fd5a972b  /opt/andon/app/andon-dashboard.jar

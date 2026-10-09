@@ -1,0 +1,73 @@
+---
+- name: Roll back to the previous stable release
+  hosts: andon_nodes
+  become: true
+
+  vars:
+    andon_user: andon
+    andon_group: andon
+    app_jar: /opt/andon/app/andon-dashboard.jar
+    releases_dir: /opt/andon/releases
+    health_port: "{{ andon_port | default(8085) }}"
+    target_jar: "{{ releases_dir }}/{{ ('andon-dashboard-' ~ rollback_version ~ '.jar') if rollback_version is defined else 'previous.jar' }}"
+
+  tasks:
+    - name: Check the rollback jar exists
+      ansible.builtin.stat:
+        path: "{{ target_jar }}"
+      register: rb_jar
+
+    - name: Stop if there is nothing to roll back to
+      ansible.builtin.fail:
+        msg: "Rollback jar not found: {{ target_jar }}"
+      when: not rb_jar.stat.exists
+
+    - name: Read the previous version
+      ansible.builtin.shell: "cat {{ releases_dir }}/previous.version 2>/dev/null || echo unknown"
+      register: prev_ver
+      changed_when: false
+
+    - name: Work out the version being restored
+      ansible.builtin.set_fact:
+        restored_version: "{{ rollback_version | default(prev_ver.stdout) }}"
+
+    - name: Restore the jar
+      ansible.builtin.copy:
+        src: "{{ target_jar }}"
+        dest: "{{ app_jar }}"
+        remote_src: true
+        owner: "{{ andon_user }}"
+        group: "{{ andon_group }}"
+        mode: "0644"
+
+    - name: Restart the service
+      ansible.builtin.systemd:
+        name: andon
+        state: restarted
+
+    - name: Wait for the port to open
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: "{{ health_port }}"
+        timeout: 90
+
+    - name: Health check
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ health_port }}/events"
+        status_code: 200
+      register: health
+      retries: 10
+      delay: 3
+      until: health.status == 200
+
+    - name: Record the restored version
+      ansible.builtin.copy:
+        content: "{{ restored_version }}\n"
+        dest: "{{ releases_dir }}/current.version"
+        owner: "{{ andon_user }}"
+        group: "{{ andon_group }}"
+        mode: "0644"
+
+    - name: Done
+      ansible.builtin.debug:
+        msg: "ROLLED BACK to {{ restored_version }}"

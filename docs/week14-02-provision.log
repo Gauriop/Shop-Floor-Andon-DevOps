@@ -1,0 +1,60 @@
+
+PLAY [Configure Shop-Floor Andon Dashboard node] *******************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [andon-node-1]
+
+TASK [Install required packages] ***********************************************
+ok: [andon-node-1]
+
+TASK [Create service group] ****************************************************
+changed: [andon-node-1]
+
+TASK [Create service user] *****************************************************
+changed: [andon-node-1]
+
+TASK [Create application, config and log directories] **************************
+changed: [andon-node-1] => (item={'path': '/opt/andon', 'owner': 'andon', 'mode': '0755'})
+changed: [andon-node-1] => (item={'path': '/opt/andon/app', 'owner': 'andon', 'mode': '0755'})
+changed: [andon-node-1] => (item={'path': '/var/log/andon', 'owner': 'andon', 'mode': '0755'})
+changed: [andon-node-1] => (item={'path': '/etc/andon', 'owner': 'root', 'mode': '0755'})
+
+TASK [Check that the application jar exists on the control side] ***************
+ok: [andon-node-1]
+
+TASK [Fail early if the jar is missing] ****************************************
+skipping: [andon-node-1]
+
+TASK [Deploy application jar] **************************************************
+changed: [andon-node-1]
+
+TASK [Write environment file (port and runtime settings)] **********************
+changed: [andon-node-1]
+
+TASK [Install systemd unit] ****************************************************
+changed: [andon-node-1]
+
+TASK [Flush handlers so the unit is registered before starting it] *************
+
+RUNNING HANDLER [Reload systemd] ***********************************************
+ok: [andon-node-1]
+
+RUNNING HANDLER [Restart andon] ************************************************
+changed: [andon-node-1]
+
+TASK [Enable and start the andon service] **************************************
+changed: [andon-node-1]
+
+TASK [Wait for the application port to listen] *********************************
+ok: [andon-node-1]
+
+TASK [Health check the dashboard] **********************************************
+ok: [andon-node-1]
+
+PLAY RECAP *********************************************************************
+andon-node-1               : ok=14   changed=8    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+
+--- health check ---
+HTTP 200
+--- jar fingerprint of the stable release ---
+994a66385e64f194689843da524dc28816534853fe20c64599e479c9fd5a972b  /opt/andon/app/andon-dashboard.jar

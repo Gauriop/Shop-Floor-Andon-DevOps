@@ -1,0 +1,11 @@
+--- before ---
+MainPID=4835
+NRestarts=0
+ActiveState=active
+--- killing the process with SIGKILL ---
+--- waiting for systemd to restart it ---
+HTTP 200
+--- after ---
+MainPID=5030
+NRestarts=1
+ActiveState=active

@@ -1,0 +1,56 @@
+
+PLAY [Deploy a versioned release (automatic rollback on failure)] **************
+
+TASK [Gathering Facts] *********************************************************
+ok: [andon-node-1]
+
+TASK [Require release_version and release_jar] *********************************
+ok: [andon-node-1] => {
+    "changed": false,
+    "msg": "All assertions passed"
+}
+
+TASK [Check the new jar exists] ************************************************
+ok: [andon-node-1]
+
+TASK [Stop if the new jar is missing] ******************************************
+skipping: [andon-node-1]
+
+TASK [Create the releases folder] **********************************************
+ok: [andon-node-1]
+
+TASK [Find out which version is deployed now] **********************************
+ok: [andon-node-1]
+
+TASK [Keep the running jar as the previous release] ****************************
+ok: [andon-node-1]
+
+TASK [Record the previous version] *********************************************
+ok: [andon-node-1]
+
+TASK [Install the new jar] *****************************************************
+ok: [andon-node-1]
+
+TASK [Restart the service] *****************************************************
+changed: [andon-node-1]
+
+TASK [Wait for the port to open] ***********************************************
+ok: [andon-node-1]
+
+TASK [Health check - /events must return 200] **********************************
+ok: [andon-node-1]
+
+TASK [Archive this release] ****************************************************
+changed: [andon-node-1]
+
+TASK [Record the new version] **************************************************
+changed: [andon-node-1]
+
+TASK [Success] *****************************************************************
+ok: [andon-node-1] => {
+    "msg": "RELEASE 1.0.3 DEPLOYED"
+}
+
+PLAY RECAP *********************************************************************
+andon-node-1               : ok=14   changed=3    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+

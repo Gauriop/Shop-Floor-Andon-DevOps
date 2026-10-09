@@ -1,0 +1,43 @@
+---
+- name: Tear down the Andon node (return it to a clean state)
+  hosts: andon_nodes
+  become: true
+
+  tasks:
+    - name: Stop and disable the andon service (fine if it does not exist)
+      ansible.builtin.systemd:
+        name: andon
+        state: stopped
+        enabled: false
+      register: stop_result
+      failed_when:
+        - stop_result.failed | default(false)
+        - "'Could not find the requested service' not in (stop_result.msg | default(''))"
+
+    - name: Remove the systemd unit
+      ansible.builtin.file:
+        path: /etc/systemd/system/andon.service
+        state: absent
+
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    - name: Remove application, log and config folders
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /opt/andon
+        - /var/log/andon
+        - /etc/andon
+
+    - name: Remove the service user
+      ansible.builtin.user:
+        name: andon
+        state: absent
+
+    - name: Remove the service group
+      ansible.builtin.group:
+        name: andon
+        state: absent

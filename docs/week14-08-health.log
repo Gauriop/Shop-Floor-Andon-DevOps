@@ -1,0 +1,15 @@
+andon-node-1 | SUCCESS => {
+    "changed": false,
+    "connection": "close",
+    "content_language": "en",
+    "content_type": "text/html;charset=UTF-8",
+    "cookies": {},
+    "cookies_string": "",
+    "date": "Fri, 09 Oct 2026 08:20:07 GMT",
+    "elapsed": 0,
+    "msg": "OK (unknown bytes)",
+    "redirected": false,
+    "status": 200,
+    "transfer_encoding": "chunked",
+    "url": "http://127.0.0.1:8085/events"
+}

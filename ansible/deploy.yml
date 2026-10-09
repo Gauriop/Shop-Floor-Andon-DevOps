@@ -1,0 +1,149 @@
+---
+- name: Deploy a versioned release (automatic rollback on failure)
+  hosts: andon_nodes
+  become: true
+
+  vars:
+    andon_user: andon
+    andon_group: andon
+    app_jar: /opt/andon/app/andon-dashboard.jar
+    releases_dir: /opt/andon/releases
+    health_port: "{{ andon_port | default(8085) }}"
+
+  pre_tasks:
+    - name: Require release_version and release_jar
+      ansible.builtin.assert:
+        that:
+          - release_version is defined
+          - release_jar is defined
+        fail_msg: "Use: -e release_version=1.0.1 -e release_jar=/path/to/app.jar"
+
+    - name: Check the new jar exists
+      ansible.builtin.stat:
+        path: "{{ release_jar }}"
+      register: new_jar
+
+    - name: Stop if the new jar is missing
+      ansible.builtin.fail:
+        msg: "Release jar not found: {{ release_jar }}"
+      when: not new_jar.stat.exists
+
+  tasks:
+    - name: Create the releases folder
+      ansible.builtin.file:
+        path: "{{ releases_dir }}"
+        state: directory
+        owner: "{{ andon_user }}"
+        group: "{{ andon_group }}"
+        mode: "0755"
+
+    - name: Find out which version is deployed now
+      ansible.builtin.shell: "cat {{ releases_dir }}/current.version 2>/dev/null || echo baseline"
+      register: current_ver
+      changed_when: false
+
+    - name: Deploy the new release
+      block:
+        - name: Keep the running jar as the previous release
+          ansible.builtin.copy:
+            src: "{{ app_jar }}"
+            dest: "{{ releases_dir }}/previous.jar"
+            remote_src: true
+            owner: "{{ andon_user }}"
+            group: "{{ andon_group }}"
+            mode: "0644"
+
+        - name: Record the previous version
+          ansible.builtin.copy:
+            content: "{{ current_ver.stdout }}\n"
+            dest: "{{ releases_dir }}/previous.version"
+            owner: "{{ andon_user }}"
+            group: "{{ andon_group }}"
+            mode: "0644"
+
+        - name: Install the new jar
+          ansible.builtin.copy:
+            src: "{{ release_jar }}"
+            dest: "{{ app_jar }}"
+            owner: "{{ andon_user }}"
+            group: "{{ andon_group }}"
+            mode: "0644"
+
+        - name: Restart the service
+          ansible.builtin.systemd:
+            name: andon
+            state: restarted
+
+        - name: Wait for the port to open
+          ansible.builtin.wait_for:
+            host: 127.0.0.1
+            port: "{{ health_port }}"
+            timeout: 45
+
+        - name: Health check - /events must return 200
+          ansible.builtin.uri:
+            url: "http://127.0.0.1:{{ health_port }}/events"
+            status_code: 200
+          register: health
+          retries: 10
+          delay: 3
+          until: health.status == 200
+
+        - name: Archive this release
+          ansible.builtin.copy:
+            src: "{{ release_jar }}"
+            dest: "{{ releases_dir }}/andon-dashboard-{{ release_version }}.jar"
+            owner: "{{ andon_user }}"
+            group: "{{ andon_group }}"
+            mode: "0644"
+
+        - name: Record the new version
+          ansible.builtin.copy:
+            content: "{{ release_version }}\n"
+            dest: "{{ releases_dir }}/current.version"
+            owner: "{{ andon_user }}"
+            group: "{{ andon_group }}"
+            mode: "0644"
+
+        - name: Success
+          ansible.builtin.debug:
+            msg: "RELEASE {{ release_version }} DEPLOYED"
+
+      rescue:
+        - name: Deploy failed - restore the previous jar
+          ansible.builtin.copy:
+            src: "{{ releases_dir }}/previous.jar"
+            dest: "{{ app_jar }}"
+            remote_src: true
+            owner: "{{ andon_user }}"
+            group: "{{ andon_group }}"
+            mode: "0644"
+
+        - name: Clear the failed state
+          ansible.builtin.command: systemctl reset-failed andon
+          changed_when: false
+          failed_when: false
+
+        - name: Restart on the previous release
+          ansible.builtin.systemd:
+            name: andon
+            state: restarted
+
+        - name: Wait for the port to open
+          ansible.builtin.wait_for:
+            host: 127.0.0.1
+            port: "{{ health_port }}"
+            timeout: 90
+
+        - name: Health check after rollback
+          ansible.builtin.uri:
+            url: "http://127.0.0.1:{{ health_port }}/events"
+            status_code: 200
+          register: rb_health
+          retries: 10
+          delay: 3
+          until: rb_health.status == 200
+
+        - name: Rollback finished
+          ansible.builtin.debug:
+            msg: "ROLLBACK COMPLETE: release {{ release_version }} failed, node is back on {{ current_ver.stdout }}"

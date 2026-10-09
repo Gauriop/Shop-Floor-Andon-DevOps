@@ -1,0 +1,34 @@
+
+PLAY [Tear down the Andon node (return it to a clean state)] *******************
+
+TASK [Gathering Facts] *********************************************************
+ok: [andon-node-1]
+
+TASK [Stop and disable the andon service (fine if it does not exist)] **********
+changed: [andon-node-1]
+
+TASK [Remove the systemd unit] *************************************************
+changed: [andon-node-1]
+
+TASK [Reload systemd] **********************************************************
+ok: [andon-node-1]
+
+TASK [Remove application, log and config folders] ******************************
+changed: [andon-node-1] => (item=/opt/andon)
+changed: [andon-node-1] => (item=/var/log/andon)
+changed: [andon-node-1] => (item=/etc/andon)
+
+TASK [Remove the service user] *************************************************
+changed: [andon-node-1]
+
+TASK [Remove the service group] ************************************************
+ok: [andon-node-1]
+
+PLAY RECAP *********************************************************************
+andon-node-1               : ok=7    changed=4    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+--- verifying the node is clean ---
+Unit andon.service could not be found.
+ls: cannot access '/opt/andon': No such file or directory
+id: ‘andon’: no such user
+port 8085: nothing is listening

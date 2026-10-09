@@ -1,4 +1,4 @@
-ERROR: Unhandled exception when retrieving 'DEFAULT_LOCAL_TMP': [Errno 30] Read-only file system: '/home/gauri/.ansible/tmp/ansible-local-1423g1vuuef5'
+ERROR: Unhandled exception when retrieving 'DEFAULT_LOCAL_TMP': [Errno 30] Read-only file system: '/home/gauri/.ansible/tmp/ansible-local-166664aemya1'
 
 Traceback (most recent call last):
   File "/usr/lib/python3/dist-packages/ansible/config/manager.py", line 545, in get_config_value
@@ -13,7 +13,7 @@ Traceback (most recent call last):
   File "/usr/lib/python3/dist-packages/ansible/config/manager.py", line 182, in _ensure_type
     value = tempfile.mkdtemp(prefix=prefix, dir=value)
   File "/usr/lib/python3.14/tempfile.py", line 381, in mkdtemp
-OSError: [Errno 30] Read-only file system: '/home/gauri/.ansible/tmp/ansible-local-1423g1vuuef5'
+OSError: [Errno 30] Read-only file system: '/home/gauri/.ansible/tmp/ansible-local-166664aemya1'
 
 The above exception was the direct cause of the following exception:
 
@@ -25,5 +25,5 @@ Traceback (most recent call last):
                           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
   File "/usr/lib/python3/dist-packages/ansible/config/manager.py", line 550, in get_config_value
     raise AnsibleError(f"Unhandled exception when retrieving {config!r}.") from ex
-ansible.errors.AnsibleError: Unhandled exception when retrieving 'DEFAULT_LOCAL_TMP': [Errno 30] Read-only file system: '/home/gauri/.ansible/tmp/ansible-local-1423g1vuuef5'
+ansible.errors.AnsibleError: Unhandled exception when retrieving 'DEFAULT_LOCAL_TMP': [Errno 30] Read-only file system: '/home/gauri/.ansible/tmp/ansible-local-166664aemya1'
 

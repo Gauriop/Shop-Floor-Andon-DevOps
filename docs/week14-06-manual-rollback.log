@@ -1,0 +1,43 @@
+
+PLAY [Roll back to the previous stable release] ********************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [andon-node-1]
+
+TASK [Check the rollback jar exists] *******************************************
+ok: [andon-node-1]
+
+TASK [Stop if there is nothing to roll back to] ********************************
+skipping: [andon-node-1]
+
+TASK [Read the previous version] ***********************************************
+ok: [andon-node-1]
+
+TASK [Work out the version being restored] *************************************
+ok: [andon-node-1]
+
+TASK [Restore the jar] *********************************************************
+ok: [andon-node-1]
+
+TASK [Restart the service] *****************************************************
+changed: [andon-node-1]
+
+TASK [Wait for the port to open] ***********************************************
+ok: [andon-node-1]
+
+TASK [Health check] ************************************************************
+ok: [andon-node-1]
+
+TASK [Record the restored version] *********************************************
+changed: [andon-node-1]
+
+TASK [Done] ********************************************************************
+ok: [andon-node-1] => {
+    "msg": "ROLLED BACK to 1.0.1"
+}
+
+PLAY RECAP *********************************************************************
+andon-node-1               : ok=10   changed=2    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+
+current version after rollback: 1.0.1
+HTTP 200

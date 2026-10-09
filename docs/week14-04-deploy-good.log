@@ -1,0 +1,64 @@
+
+PLAY [Deploy a versioned release (automatic rollback on failure)] **************
+
+TASK [Gathering Facts] *********************************************************
+ok: [andon-node-1]
+
+TASK [Require release_version and release_jar] *********************************
+ok: [andon-node-1] => {
+    "changed": false,
+    "msg": "All assertions passed"
+}
+
+TASK [Check the new jar exists] ************************************************
+ok: [andon-node-1]
+
+TASK [Stop if the new jar is missing] ******************************************
+skipping: [andon-node-1]
+
+TASK [Create the releases folder] **********************************************
+changed: [andon-node-1]
+
+TASK [Find out which version is deployed now] **********************************
+ok: [andon-node-1]
+
+TASK [Keep the running jar as the previous release] ****************************
+changed: [andon-node-1]
+
+TASK [Record the previous version] *********************************************
+changed: [andon-node-1]
+
+TASK [Install the new jar] *****************************************************
+ok: [andon-node-1]
+
+TASK [Restart the service] *****************************************************
+changed: [andon-node-1]
+
+TASK [Wait for the port to open] ***********************************************
+ok: [andon-node-1]
+
+TASK [Health check - /events must return 200] **********************************
+ok: [andon-node-1]
+
+TASK [Archive this release] ****************************************************
+changed: [andon-node-1]
+
+TASK [Record the new version] **************************************************
+changed: [andon-node-1]
+
+TASK [Success] *****************************************************************
+ok: [andon-node-1] => {
+    "msg": "RELEASE 1.0.1 DEPLOYED"
+}
+
+PLAY RECAP *********************************************************************
+andon-node-1               : ok=14   changed=6    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+
+--- release records ---
+current:  1.0.1
+previous: baseline
+total 95816
+-rw-r--r-- 1 andon andon 49051443 Oct  9 08:15 andon-dashboard-1.0.1.jar
+-rw-r--r-- 1 andon andon        6 Oct  9 08:15 current.version
+-rw-r--r-- 1 andon andon 49051443 Oct  9 08:13 previous.jar
+-rw-r--r-- 1 andon andon        9 Oct  9 08:15 previous.version
