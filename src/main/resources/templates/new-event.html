@@ -1,77 +1,670 @@
 <!doctype html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Log New Event</title>
     <style>
-      body {
-        font-family: Arial, sans-serif;
-        margin: 30px;
-        background: #f4f4f4;
+      /* Shop-Floor Andon Dashboard theme.
+         No text-transform on headings, links, table cells or cards, so the
+         text Selenium reads stays identical to the page source. */
+      :root {
+        --bg: #0b1220;
+        --side: #0d1526;
+        --panel: #111a2e;
+        --line: #1e2b47;
+        --text: #e8edf7;
+        --muted: #8d9ab5;
+        --red: #ef4444;
+        --amber: #f59e0b;
+        --green: #22c55e;
+        --blue: #3b82f6;
+        --radius: 14px;
       }
-      form {
-        background: #fff;
-        padding: 20px;
-        border-radius: 6px;
-        max-width: 400px;
-      }
-      label {
-        display: block;
-        margin-top: 12px;
-        font-weight: bold;
-      }
-      input,
-      select {
-        width: 100%;
-        padding: 8px;
-        margin-top: 4px;
+      * {
         box-sizing: border-box;
       }
-      button {
-        margin-top: 18px;
-        padding: 10px 20px;
-        background: #333;
-        color: #fff;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
+      body {
+        margin: 0;
+        font-family:
+          Inter,
+          "Segoe UI",
+          system-ui,
+          -apple-system,
+          Arial,
+          sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(1100px 520px at 85% -10%, #16284d 0, transparent 60%),
+          var(--bg);
       }
       a {
+        color: #8bb8ff;
+      }
+
+      /* ---------- layout ---------- */
+      .app {
+        display: grid;
+        grid-template-columns: 236px 1fr;
+        min-height: 100vh;
+      }
+      .sidebar {
+        background: var(--side);
+        border-right: 1px solid var(--line);
+        padding: 22px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 700;
+        font-size: 1.05rem;
+        padding: 4px 8px 20px;
+      }
+      .brand .logo {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(135deg, var(--amber), var(--red));
+        color: #0b1220;
+        font-weight: 800;
+      }
+      .nav {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .nav a {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 11px 12px;
+        border-radius: 10px;
+        color: var(--muted);
+        text-decoration: none;
+        font-weight: 600;
+      }
+      .nav a:hover {
+        background: #15203a;
+        color: #fff;
+      }
+      .nav a.active {
+        background: #1a2744;
+        color: #fff;
+        box-shadow: inset 3px 0 0 var(--amber);
+      }
+      .nav a::before {
+        content: "\25A6";
+        width: 18px;
+        text-align: center;
+        opacity: 0.9;
+      }
+      .nav a.n-new::before {
+        content: "+";
+        font-weight: 800;
+      }
+      .nav a.n-alerts::before {
+        content: "\26A0";
+      }
+      .side-foot {
+        margin-top: auto;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+      .dot-live {
         display: inline-block;
-        margin-bottom: 15px;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--green);
+        margin-right: 6px;
+        animation: pulse 1.6s infinite;
+      }
+      @keyframes pulse {
+        0% {
+          box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6);
+        }
+        100% {
+          box-shadow: 0 0 0 9px rgba(34, 197, 94, 0);
+        }
+      }
+
+      .main {
+        padding: 26px 30px 18px;
+        min-width: 0;
+      }
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 22px;
+      }
+      .topbar h1 {
+        margin: 0;
+        font-size: 1.75rem;
+        letter-spacing: 0.2px;
+      }
+      .sub {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+      .actions {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .back {
+        display: inline-block;
+        margin-bottom: 14px;
+        color: var(--muted);
+        text-decoration: none;
+        font-weight: 600;
+      }
+      .back:hover {
+        color: #fff;
+      }
+
+      /* ---------- controls ---------- */
+      input[type="text"],
+      select {
+        width: 100%;
+        padding: 11px 13px;
+        background: #0d1628;
+        color: var(--text);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        font-size: 0.95rem;
+        font-family: inherit;
+      }
+      input[type="text"]:focus,
+      select:focus {
+        outline: 2px solid rgba(59, 130, 246, 0.55);
+        border-color: var(--blue);
+      }
+      .search {
+        display: flex;
+        gap: 8px;
+      }
+      .search input[type="text"] {
+        width: 270px;
+      }
+      button {
+        padding: 11px 20px;
+        border: 0;
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: 700;
+        font-family: inherit;
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        color: #fff;
+      }
+      button:hover {
+        filter: brightness(1.1);
+      }
+      a.button {
+        display: inline-block;
+        padding: 11px 18px;
+        border-radius: 10px;
+        text-decoration: none;
+        font-weight: 800;
+        background: linear-gradient(135deg, #22c55e, #15803d);
+        color: #05210f;
+      }
+      a.button:hover {
+        filter: brightness(1.1);
+      }
+
+      /* ---------- panels ---------- */
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 18px 20px;
+      }
+      .panel h2 {
+        margin: 0 0 14px;
+        font-size: 0.92rem;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+        font-weight: 700;
+      }
+      .panel-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .muted {
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      .grid3 {
+        display: grid;
+        grid-template-columns: 1.15fr 1fr 1fr;
+        gap: 16px;
+        margin-bottom: 18px;
+      }
+
+      .alerts {
+        background: linear-gradient(
+          180deg,
+          rgba(239, 68, 68, 0.18),
+          rgba(239, 68, 68, 0.06)
+        );
+        border-color: rgba(239, 68, 68, 0.5);
+      }
+      .alerts strong {
+        display: block;
+        color: #ffb4b4;
+        margin-bottom: 8px;
+      }
+      .alerts ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        max-height: 190px;
+        overflow: auto;
+      }
+      .alerts li {
+        padding: 8px 0;
+        border-top: 1px dashed rgba(239, 68, 68, 0.35);
+      }
+      .alerts li::before {
+        content: "";
+        display: inline-block;
+        width: 9px;
+        height: 9px;
+        margin-right: 10px;
+        border-radius: 50%;
+        background: var(--red);
+        animation: pulse-red 1.4s infinite;
+      }
+      @keyframes pulse-red {
+        0% {
+          box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+        }
+        100% {
+          box-shadow: 0 0 0 9px rgba(239, 68, 68, 0);
+        }
+      }
+      .alerts a {
+        color: #ffd6d6;
+        font-weight: 600;
+        text-decoration: none;
+      }
+      .alerts a:hover {
+        text-decoration: underline;
+      }
+      .allclear {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        border-color: rgba(34, 197, 94, 0.45);
+        background: linear-gradient(
+          180deg,
+          rgba(34, 197, 94, 0.16),
+          rgba(34, 197, 94, 0.05)
+        );
+        color: #bff3d1;
+        font-weight: 600;
+      }
+      .ok-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: rgba(34, 197, 94, 0.25);
+        display: grid;
+        place-items: center;
+        font-size: 1.3rem;
+        color: #4ade80;
+      }
+      .ok-icon::before {
+        content: "\2713";
+      }
+
+      /* donut + legend */
+      .donut-wrap {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        flex-wrap: wrap;
+      }
+      #donut svg {
+        width: 150px;
+        height: 150px;
+        display: block;
+      }
+      .legend {
+        display: flex;
+        flex-direction: column;
+        gap: 9px;
+        min-width: 120px;
+      }
+      .lg {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+      .lg::before {
+        content: "";
+        width: 10px;
+        height: 10px;
+        border-radius: 3px;
+        background: currentColor;
+      }
+      .lg b {
+        margin-left: auto;
+        color: var(--text);
+      }
+      .lg-open {
+        color: var(--red);
+      }
+      .lg-progress {
+        color: var(--amber);
+      }
+      .lg-resolved {
+        color: var(--green);
+      }
+      .lg span {
+        color: var(--muted);
+      }
+
+      /* bars */
+      .bar-row {
+        display: grid;
+        grid-template-columns: 70px 1fr 28px;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+        font-size: 0.9rem;
+      }
+      .bar-row .track {
+        height: 12px;
+        background: #0d1628;
+        border-radius: 999px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+      }
+      .bar-row .fill {
+        height: 100%;
+        border-radius: 999px;
+      }
+      .bar-row b {
+        text-align: right;
+      }
+      .rate {
+        margin-top: 16px;
+        padding-top: 14px;
+        border-top: 1px dashed var(--line);
+      }
+      .rate .big {
+        font-size: 1.6rem;
+        font-weight: 800;
+      }
+
+      /* ---------- detail + form pages ---------- */
+      .two-col {
+        display: grid;
+        grid-template-columns: minmax(300px, 560px) minmax(260px, 340px);
+        gap: 18px;
+        align-items: start;
+      }
+      .row {
+        display: flex;
+        gap: 14px;
+        padding: 13px 0;
+        border-bottom: 1px dashed var(--line);
+        align-items: center;
+      }
+      .row:last-of-type {
+        border-bottom: 0;
+      }
+      .label {
+        width: 130px;
+        color: var(--muted);
+        font-weight: 600;
+        flex-shrink: 0;
+      }
+      .pill {
+        display: inline-block;
+        padding: 4px 13px;
+        border-radius: 999px;
+        font-weight: 700;
+        font-size: 0.86rem;
+      }
+      .pill.severity-HIGH,
+      .pill.status-OPEN {
+        background: rgba(239, 68, 68, 0.16);
+      }
+      .pill.severity-MEDIUM,
+      .pill.status-IN_PROGRESS {
+        background: rgba(245, 158, 11, 0.16);
+      }
+      .pill.severity-LOW,
+      .pill.status-RESOLVED {
+        background: rgba(34, 197, 94, 0.16);
+      }
+      .severity-HIGH {
+        color: #ff7a7a;
+        font-weight: 700;
+      }
+      .severity-MEDIUM {
+        color: #fbbf24;
+        font-weight: 600;
+      }
+      .severity-LOW {
+        color: #4ade80;
+        font-weight: 600;
+      }
+      .status-OPEN {
+        color: #ff8b8b;
+      }
+      .status-IN_PROGRESS {
+        color: #fbbf24;
+      }
+      .status-RESOLVED {
+        color: #4ade80;
+      }
+      .status-form {
+        margin-top: 18px;
+        padding-top: 18px;
+        border-top: 1px solid var(--line);
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .status-form .label {
+        width: auto;
+      }
+      .status-form select {
+        width: 200px;
+      }
+      .form-field {
+        margin-bottom: 16px;
+      }
+      .form-field label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 600;
+        color: var(--muted);
+      }
+      .guide {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        font-size: 0.92rem;
+        color: var(--muted);
+      }
+      .guide .g {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+      }
+      .guide .g::before {
+        content: "";
+        flex: 0 0 10px;
+        height: 10px;
+        margin-top: 5px;
+        border-radius: 50%;
+      }
+      .guide .g-high::before {
+        background: var(--red);
+      }
+      .guide .g-med::before {
+        background: var(--amber);
+      }
+      .guide .g-low::before {
+        background: var(--green);
+      }
+      .guide b {
+        color: var(--text);
+      }
+
+      /* ---------- responsive ---------- */
+      @media (max-width: 1100px) {
+        .grid3 {
+          grid-template-columns: 1fr 1fr;
+        }
+        .grid3 > :first-child {
+          grid-column: 1 / -1;
+        }
+      }
+      @media (max-width: 860px) {
+        .app {
+          grid-template-columns: 1fr;
+        }
+        .sidebar {
+          flex-direction: row;
+          align-items: center;
+          flex-wrap: wrap;
+          padding: 12px 16px;
+        }
+        .brand {
+          padding: 0 10px 0 0;
+        }
+        .nav {
+          flex-direction: row;
+        }
+        .side-foot {
+          margin: 0 0 0 auto;
+        }
+        .summary,
+        .grid3,
+        .two-col {
+          grid-template-columns: 1fr;
+        }
+        .search input[type="text"] {
+          width: 100%;
+        }
+        .main {
+          padding: 18px 14px;
+        }
       }
     </style>
   </head>
   <body>
-    <a th:href="@{/events}">&larr; Back to Dashboard</a>
-    <h1>Log New Event</h1>
-    <form th:action="@{/events}" th:object="${event}" method="post">
-      <label>Station</label>
-      <input
-        type="text"
-        th:field="*{station}"
-        required
-        placeholder="e.g. Line 3 - Assembly"
-      />
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand">
+          <span class="logo">A</span><span>Andon Board</span>
+        </div>
+        <nav class="nav">
+          <a th:href="@{/events}">Dashboard</a>
+          <a class="n-new active" th:href="@{/events/new}">New Event</a>
+        </nav>
+      </aside>
 
-      <label>Issue Type</label>
-      <input
-        type="text"
-        th:field="*{issueType}"
-        required
-        placeholder="e.g. Machine Breakdown"
-      />
+      <main class="main">
+        <a class="back" th:href="@{/events}">&larr; Back to Dashboard</a>
+        <header class="topbar">
+          <div>
+            <h1>Log New Event</h1>
+            <p class="sub">
+              Report a problem on the shop floor so the right people see it
+              straight away
+            </p>
+          </div>
+        </header>
 
-      <label>Severity</label>
-      <select th:field="*{severity}">
-        <option
-          th:each="s : ${severities}"
-          th:value="${s}"
-          th:text="${s}"
-        ></option>
-      </select>
+        <div class="two-col">
+          <form
+            class="panel"
+            th:action="@{/events}"
+            th:object="${event}"
+            method="post"
+          >
+            <div class="form-field">
+              <label for="station">Station</label>
+              <input
+                type="text"
+                th:field="*{station}"
+                required
+                placeholder="e.g. Line 3 - Assembly"
+              />
+            </div>
 
-      <button type="submit">Log Event</button>
-    </form>
+            <div class="form-field">
+              <label for="issueType">Issue Type</label>
+              <input
+                type="text"
+                th:field="*{issueType}"
+                required
+                placeholder="e.g. Machine Breakdown"
+              />
+            </div>
+
+            <div class="form-field">
+              <label for="severity">Severity</label>
+              <select th:field="*{severity}">
+                <option
+                  th:each="s : ${severities}"
+                  th:value="${s}"
+                  th:text="${s}"
+                ></option>
+              </select>
+            </div>
+
+            <button type="submit">Log Event</button>
+          </form>
+
+          <div class="panel">
+            <h2>Severity guide</h2>
+            <div class="guide">
+              <div class="g g-high">
+                <span
+                  ><b>HIGH</b> line stopped or safety risk. Shows in the alert
+                  panel until resolved.</span
+                >
+              </div>
+              <div class="g g-med">
+                <span><b>MEDIUM</b> production slowed or quality at risk.</span>
+              </div>
+              <div class="g g-low">
+                <span
+                  ><b>LOW</b> minor issue that can wait for the next
+                  break.</span
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
   </body>
 </html>

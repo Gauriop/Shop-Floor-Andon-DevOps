@@ -1,145 +1,920 @@
 <!doctype html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Shop-Floor Andon Dashboard</title>
     <style>
+      /* Shop-Floor Andon Dashboard theme.
+         No text-transform on headings, links, table cells or cards, so the
+         text Selenium reads stays identical to the page source. */
+      :root {
+        --bg: #0b1220;
+        --side: #0d1526;
+        --panel: #111a2e;
+        --line: #1e2b47;
+        --text: #e8edf7;
+        --muted: #8d9ab5;
+        --red: #ef4444;
+        --amber: #f59e0b;
+        --green: #22c55e;
+        --blue: #3b82f6;
+        --radius: 14px;
+      }
+      * {
+        box-sizing: border-box;
+      }
       body {
-        font-family: Arial, sans-serif;
-        margin: 30px;
-        background: #f4f4f4;
+        margin: 0;
+        font-family:
+          Inter,
+          "Segoe UI",
+          system-ui,
+          -apple-system,
+          Arial,
+          sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(1100px 520px at 85% -10%, #16284d 0, transparent 60%),
+          var(--bg);
       }
-      h1 {
-        color: #222;
+      a {
+        color: #8bb8ff;
       }
-      .summary {
+
+      /* ---------- layout ---------- */
+      .app {
+        display: grid;
+        grid-template-columns: 236px 1fr;
+        min-height: 100vh;
+      }
+      .sidebar {
+        background: var(--side);
+        border-right: 1px solid var(--line);
+        padding: 22px 16px;
         display: flex;
-        gap: 15px;
-        margin-bottom: 20px;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 700;
+        font-size: 1.05rem;
+        padding: 4px 8px 20px;
+      }
+      .brand .logo {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(135deg, var(--amber), var(--red));
+        color: #0b1220;
+        font-weight: 800;
+      }
+      .nav {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .nav a {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 11px 12px;
+        border-radius: 10px;
+        color: var(--muted);
+        text-decoration: none;
+        font-weight: 600;
+      }
+      .nav a:hover {
+        background: #15203a;
+        color: #fff;
+      }
+      .nav a.active {
+        background: #1a2744;
+        color: #fff;
+        box-shadow: inset 3px 0 0 var(--amber);
+      }
+      .nav a::before {
+        content: "\25A6";
+        width: 18px;
+        text-align: center;
+        opacity: 0.9;
+      }
+      .nav a.n-new::before {
+        content: "+";
+        font-weight: 800;
+      }
+      .nav a.n-alerts::before {
+        content: "\26A0";
+      }
+      .side-foot {
+        margin-top: auto;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+      .dot-live {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--green);
+        margin-right: 6px;
+        animation: pulse 1.6s infinite;
+      }
+      @keyframes pulse {
+        0% {
+          box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6);
+        }
+        100% {
+          box-shadow: 0 0 0 9px rgba(34, 197, 94, 0);
+        }
+      }
+
+      .main {
+        padding: 26px 30px 18px;
+        min-width: 0;
+      }
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 22px;
+      }
+      .topbar h1 {
+        margin: 0;
+        font-size: 1.75rem;
+        letter-spacing: 0.2px;
+      }
+      .sub {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+      .actions {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .back {
+        display: inline-block;
+        margin-bottom: 14px;
+        color: var(--muted);
+        text-decoration: none;
+        font-weight: 600;
+      }
+      .back:hover {
+        color: #fff;
+      }
+
+      /* ---------- controls ---------- */
+      input[type="text"],
+      select {
+        width: 100%;
+        padding: 11px 13px;
+        background: #0d1628;
+        color: var(--text);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        font-size: 0.95rem;
+        font-family: inherit;
+      }
+      input[type="text"]:focus,
+      select:focus {
+        outline: 2px solid rgba(59, 130, 246, 0.55);
+        border-color: var(--blue);
+      }
+      .search {
+        display: flex;
+        gap: 8px;
+      }
+      .search input[type="text"] {
+        width: 270px;
+      }
+      button {
+        padding: 11px 20px;
+        border: 0;
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: 700;
+        font-family: inherit;
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        color: #fff;
+      }
+      button:hover {
+        filter: brightness(1.1);
+      }
+      a.button {
+        display: inline-block;
+        padding: 11px 18px;
+        border-radius: 10px;
+        text-decoration: none;
+        font-weight: 800;
+        background: linear-gradient(135deg, #22c55e, #15803d);
+        color: #05210f;
+      }
+      a.button:hover {
+        filter: brightness(1.1);
+      }
+
+      /* ---------- KPI cards ---------- */
+      .summary {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-bottom: 18px;
       }
       .card {
-        padding: 15px 25px;
-        border-radius: 6px;
+        position: relative;
+        overflow: hidden;
+        padding: 22px 24px;
+        border-radius: var(--radius);
+        font-weight: 700;
+        font-size: 1.05rem;
         color: #fff;
-        font-weight: bold;
+        border: 1px solid rgba(255, 255, 255, 0.1);
       }
-      .open {
-        background: #d9534f;
+      .card::after {
+        content: "";
+        position: absolute;
+        right: -34px;
+        top: -34px;
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
       }
-      .inprogress {
-        background: #f0ad4e;
+      .card .num {
+        display: inline-block;
+        margin-left: 10px;
+        font-size: 2.6rem;
+        font-weight: 800;
+        line-height: 1;
+        vertical-align: middle;
       }
-      .resolved {
-        background: #5cb85c;
+      .card.open {
+        background: linear-gradient(135deg, #dc2626, #7f1d1d);
       }
+      .card.inprogress {
+        background: linear-gradient(135deg, #f59e0b, #92400e);
+      }
+      .card.resolved {
+        background: linear-gradient(135deg, #16a34a, #14532d);
+      }
+
+      /* ---------- panels ---------- */
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 18px 20px;
+      }
+      .panel h2 {
+        margin: 0 0 14px;
+        font-size: 0.92rem;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+        font-weight: 700;
+      }
+      .panel-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .muted {
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      .grid3 {
+        display: grid;
+        grid-template-columns: 1.15fr 1fr 1fr;
+        gap: 16px;
+        margin-bottom: 18px;
+      }
+
       .alerts {
-        background: #fff3cd;
-        border: 1px solid #ffe08a;
-        padding: 10px 15px;
-        margin-bottom: 20px;
-        border-radius: 6px;
+        background: linear-gradient(
+          180deg,
+          rgba(239, 68, 68, 0.18),
+          rgba(239, 68, 68, 0.06)
+        );
+        border-color: rgba(239, 68, 68, 0.5);
+      }
+      .alerts strong {
+        display: block;
+        color: #ffb4b4;
+        margin-bottom: 8px;
+      }
+      .alerts ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        max-height: 190px;
+        overflow: auto;
+      }
+      .alerts li {
+        padding: 8px 0;
+        border-top: 1px dashed rgba(239, 68, 68, 0.35);
+      }
+      .alerts li::before {
+        content: "";
+        display: inline-block;
+        width: 9px;
+        height: 9px;
+        margin-right: 10px;
+        border-radius: 50%;
+        background: var(--red);
+        animation: pulse-red 1.4s infinite;
+      }
+      @keyframes pulse-red {
+        0% {
+          box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+        }
+        100% {
+          box-shadow: 0 0 0 9px rgba(239, 68, 68, 0);
+        }
+      }
+      .alerts a {
+        color: #ffd6d6;
+        font-weight: 600;
+        text-decoration: none;
+      }
+      .alerts a:hover {
+        text-decoration: underline;
+      }
+      .allclear {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        border-color: rgba(34, 197, 94, 0.45);
+        background: linear-gradient(
+          180deg,
+          rgba(34, 197, 94, 0.16),
+          rgba(34, 197, 94, 0.05)
+        );
+        color: #bff3d1;
+        font-weight: 600;
+      }
+      .ok-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: rgba(34, 197, 94, 0.25);
+        display: grid;
+        place-items: center;
+        font-size: 1.3rem;
+        color: #4ade80;
+      }
+      .ok-icon::before {
+        content: "\2713";
+      }
+
+      /* donut + legend */
+      .donut-wrap {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        flex-wrap: wrap;
+      }
+      #donut svg {
+        width: 150px;
+        height: 150px;
+        display: block;
+      }
+      .legend {
+        display: flex;
+        flex-direction: column;
+        gap: 9px;
+        min-width: 120px;
+      }
+      .lg {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+      .lg::before {
+        content: "";
+        width: 10px;
+        height: 10px;
+        border-radius: 3px;
+        background: currentColor;
+      }
+      .lg b {
+        margin-left: auto;
+        color: var(--text);
+      }
+      .lg-open {
+        color: var(--red);
+      }
+      .lg-progress {
+        color: var(--amber);
+      }
+      .lg-resolved {
+        color: var(--green);
+      }
+      .lg span {
+        color: var(--muted);
+      }
+
+      /* bars */
+      .bar-row {
+        display: grid;
+        grid-template-columns: 70px 1fr 28px;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+        font-size: 0.9rem;
+      }
+      .bar-row .track {
+        height: 12px;
+        background: #0d1628;
+        border-radius: 999px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+      }
+      .bar-row .fill {
+        height: 100%;
+        border-radius: 999px;
+      }
+      .bar-row b {
+        text-align: right;
+      }
+      .rate {
+        margin-top: 16px;
+        padding-top: 14px;
+        border-top: 1px dashed var(--line);
+      }
+      .rate .big {
+        font-size: 1.6rem;
+        font-weight: 800;
+      }
+
+      /* ---------- table ---------- */
+      .table-wrap {
+        overflow-x: auto;
       }
       table {
         width: 100%;
         border-collapse: collapse;
-        background: #fff;
-      }
-      th,
-      td {
-        padding: 10px;
-        border: 1px solid #ddd;
-        text-align: left;
+        font-size: 0.93rem;
       }
       th {
-        background: #333;
-        color: #fff;
+        text-align: left;
+        padding: 12px 12px;
+        color: var(--muted);
+        font-weight: 700;
+        border-bottom: 1px solid var(--line);
+        background: #0e172b;
+      }
+      td {
+        padding: 13px 12px;
+        border-bottom: 1px solid var(--line);
+      }
+      tbody tr:hover {
+        background: #15203a;
+      }
+      td[class*="severity-"]::before,
+      td[class*="status-"]::before {
+        content: "";
+        display: inline-block;
+        width: 9px;
+        height: 9px;
+        margin-right: 8px;
+        border-radius: 50%;
+        background: currentColor;
       }
       .severity-HIGH {
-        color: #d9534f;
-        font-weight: bold;
+        color: #ff7a7a;
+        font-weight: 700;
       }
       .severity-MEDIUM {
-        color: #f0ad4e;
+        color: #fbbf24;
+        font-weight: 600;
       }
       .severity-LOW {
-        color: #5cb85c;
+        color: #4ade80;
+        font-weight: 600;
       }
-      a.button {
+      .status-OPEN {
+        color: #ff8b8b;
+      }
+      .status-IN_PROGRESS {
+        color: #fbbf24;
+      }
+      .status-RESOLVED {
+        color: #4ade80;
+      }
+      td a {
         display: inline-block;
-        padding: 8px 16px;
-        background: #333;
-        color: #fff;
+        padding: 6px 14px;
+        border: 1px solid #2c3d63;
+        border-radius: 8px;
+        color: #cfe0ff;
         text-decoration: none;
-        border-radius: 4px;
-        margin-bottom: 15px;
+        font-weight: 600;
       }
-      input[type="text"] {
-        padding: 8px;
-        width: 250px;
+      td a:hover {
+        background: #1a2744;
+      }
+      .empty {
+        padding: 26px;
+        text-align: center;
+        color: var(--muted);
+      }
+      .foot {
+        margin-top: 18px;
+        color: var(--muted);
+        font-size: 0.82rem;
+        text-align: center;
+      }
+
+      /* ---------- responsive ---------- */
+      @media (max-width: 1100px) {
+        .grid3 {
+          grid-template-columns: 1fr 1fr;
+        }
+        .grid3 > :first-child {
+          grid-column: 1 / -1;
+        }
+      }
+      @media (max-width: 860px) {
+        .app {
+          grid-template-columns: 1fr;
+        }
+        .sidebar {
+          flex-direction: row;
+          align-items: center;
+          flex-wrap: wrap;
+          padding: 12px 16px;
+        }
+        .brand {
+          padding: 0 10px 0 0;
+        }
+        .nav {
+          flex-direction: row;
+        }
+        .side-foot {
+          margin: 0 0 0 auto;
+        }
+        .summary,
+        .grid3,
+        .two-col {
+          grid-template-columns: 1fr;
+        }
+        .search input[type="text"] {
+          width: 100%;
+        }
+        .main {
+          padding: 18px 14px;
+        }
       }
     </style>
   </head>
   <body>
-    <h1>Shop-Floor Andon Dashboard</h1>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand">
+          <span class="logo">A</span><span>Andon Board</span>
+        </div>
+        <nav class="nav">
+          <a class="active" th:href="@{/events}">Dashboard</a>
+          <a class="n-new" th:href="@{/events/new}">New Event</a>
+          <a class="n-alerts" href="#alerts">Alerts</a>
+        </nav>
+        <div class="side-foot">
+          <span class="dot-live"></span>Live &middot; <span id="clock"></span>
+        </div>
+      </aside>
 
-    <div class="summary">
-      <div class="card open">Open: <span th:text="${openCount}">0</span></div>
-      <div class="card inprogress">
-        In Progress: <span th:text="${inProgressCount}">0</span>
-      </div>
-      <div class="card resolved">
-        Resolved: <span th:text="${resolvedCount}">0</span>
-      </div>
-    </div>
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <h1>Shop-Floor Andon Dashboard</h1>
+            <p class="sub">Real-time line status, alerts and event tracking</p>
+          </div>
+          <div class="actions">
+            <form class="search" th:action="@{/events}" method="get">
+              <input
+                type="text"
+                name="q"
+                placeholder="Search station or issue type..."
+                th:value="${query}"
+              />
+              <button type="submit">Search</button>
+            </form>
+            <a class="button" th:href="@{/events/new}">+ Log New Event</a>
+          </div>
+        </header>
 
-    <div class="alerts" th:if="${!criticalAlerts.isEmpty()}">
-      <strong>&#9888; Critical Alerts (Open + High Severity):</strong>
-      <ul>
-        <li th:each="alert : ${criticalAlerts}">
-          <a
-            th:href="@{'/events/' + ${alert.id}}"
-            th:text="${alert.station} + ' - ' + ${alert.issueType}"
-            >Alert</a
+        <section
+          class="summary"
+          id="stats"
+          th:attr="data-open=${openCount},data-progress=${inProgressCount},data-resolved=${resolvedCount}"
+        >
+          <div class="card open">
+            Open: <span class="num" th:text="${openCount}">0</span>
+          </div>
+          <div class="card inprogress">
+            In Progress: <span class="num" th:text="${inProgressCount}">0</span>
+          </div>
+          <div class="card resolved">
+            Resolved: <span class="num" th:text="${resolvedCount}">0</span>
+          </div>
+        </section>
+
+        <section class="grid3">
+          <div
+            id="alerts"
+            class="alerts panel"
+            th:if="${!criticalAlerts.isEmpty()}"
           >
-        </li>
-      </ul>
+            <strong>&#9888; Critical Alerts (Open + High Severity):</strong>
+            <ul>
+              <li th:each="alert : ${criticalAlerts}">
+                <a
+                  th:href="@{'/events/' + ${alert.id}}"
+                  th:text="${alert.station} + ' - ' + ${alert.issueType}"
+                  >Alert</a
+                >
+              </li>
+            </ul>
+          </div>
+          <div class="allclear panel" th:if="${criticalAlerts.isEmpty()}">
+            <div class="ok-icon"></div>
+            <div>
+              All systems normal<br /><span class="muted"
+                >No high-severity open events</span
+              >
+            </div>
+          </div>
+
+          <div class="panel">
+            <h2>Status distribution</h2>
+            <div class="donut-wrap">
+              <div id="donut"></div>
+              <div class="legend">
+                <div class="lg lg-open">
+                  <span>Open</span><b th:text="${openCount}">0</b>
+                </div>
+                <div class="lg lg-progress">
+                  <span>In progress</span><b th:text="${inProgressCount}">0</b>
+                </div>
+                <div class="lg lg-resolved">
+                  <span>Resolved</span><b th:text="${resolvedCount}">0</b>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h2>Severity mix (events shown below)</h2>
+            <div id="sevbars"></div>
+            <div id="rate" class="rate"></div>
+          </div>
+        </section>
+
+        <section class="panel" id="events">
+          <div class="panel-head">
+            <h2>Event log</h2>
+            <span class="muted" th:if="${query != null and query != ''}">
+              Showing results for <b th:text="${query}"></b>
+            </span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Station</th>
+                  <th>Issue Type</th>
+                  <th>Severity</th>
+                  <th>Status</th>
+                  <th>Timestamp</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr th:each="e : ${events}">
+                  <td th:text="${e.station}">Station</td>
+                  <td th:text="${e.issueType}">Issue</td>
+                  <td
+                    th:text="${e.severity}"
+                    th:class="'severity-' + ${e.severity}"
+                  >
+                    Severity
+                  </td>
+                  <td th:text="${e.status}" th:class="'status-' + ${e.status}">
+                    Status
+                  </td>
+                  <td class="ts" th:text="${e.timestamp}">Timestamp</td>
+                  <td><a th:href="@{'/events/' + ${e.id}}">View</a></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="empty" th:if="${events.isEmpty()}">
+            No events to show yet.
+          </div>
+        </section>
+
+        <p class="foot">
+          Shop-Floor Andon Dashboard &middot; delivered through Jenkins, Docker
+          and Ansible
+        </p>
+      </main>
     </div>
+    <script>
+      /* Cosmetic only: draws the charts from numbers already on the page.
+         It never changes the table structure, the form fields or the links. */
+      (function () {
+        "use strict";
+        var NS = "http://www.w3.org/2000/svg";
 
-    <a class="button" th:href="@{/events/new}">+ Log New Event</a>
+        function $(sel) {
+          return document.querySelector(sel);
+        }
+        function all(sel) {
+          return Array.prototype.slice.call(document.querySelectorAll(sel));
+        }
+        function num(v) {
+          var n = parseInt(v, 10);
+          return isNaN(n) ? 0 : n;
+        }
+        function svgEl(name, attrs) {
+          var e = document.createElementNS(NS, name);
+          Object.keys(attrs).forEach(function (k) {
+            e.setAttribute(k, attrs[k]);
+          });
+          return e;
+        }
+        function box(cls, text) {
+          var d = document.createElement("div");
+          if (cls) {
+            d.className = cls;
+          }
+          if (text !== undefined) {
+            d.textContent = text;
+          }
+          return d;
+        }
 
-    <form th:action="@{/events}" method="get" style="margin-bottom: 15px">
-      <input
-        type="text"
-        name="q"
-        placeholder="Search station or issue type..."
-        th:value="${query}"
-      />
-      <button type="submit">Search</button>
-    </form>
+        // ---- live clock ----
+        var clock = $("#clock");
+        function tick() {
+          if (clock) {
+            clock.textContent = new Date().toLocaleTimeString();
+          }
+        }
+        tick();
+        setInterval(tick, 1000);
 
-    <table>
-      <thead>
-        <tr>
-          <th>Station</th>
-          <th>Issue Type</th>
-          <th>Severity</th>
-          <th>Status</th>
-          <th>Timestamp</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr th:each="e : ${events}">
-          <td th:text="${e.station}">Station</td>
-          <td th:text="${e.issueType}">Issue</td>
-          <td th:text="${e.severity}" th:class="'severity-' + ${e.severity}">
-            Severity
-          </td>
-          <td th:text="${e.status}">Status</td>
-          <td th:text="${e.timestamp}">Timestamp</td>
-          <td><a th:href="@{'/events/' + ${e.id}}">View</a></td>
-        </tr>
-      </tbody>
-    </table>
+        // ---- status donut + resolution rate ----
+        var stats = $("#stats");
+        var donut = $("#donut");
+        if (stats) {
+          if (donut) {
+            var open = num(stats.getAttribute("data-open"));
+            var progress = num(stats.getAttribute("data-progress"));
+            var resolved = num(stats.getAttribute("data-resolved"));
+            var total = open + progress + resolved;
+            var r = 52;
+            var c = 2 * Math.PI * r;
+
+            var svg = svgEl("svg", { viewBox: "0 0 140 140", role: "img" });
+            svg.appendChild(
+              svgEl("circle", {
+                cx: 70,
+                cy: 70,
+                r: r,
+                fill: "none",
+                stroke: "#1e2b47",
+                "stroke-width": 18,
+              }),
+            );
+
+            var parts = [
+              { v: open, color: "#ef4444" },
+              { v: progress, color: "#f59e0b" },
+              { v: resolved, color: "#22c55e" },
+            ];
+            var offset = 0;
+            if (total > 0) {
+              parts.forEach(function (p) {
+                if (p.v === 0) {
+                  return;
+                }
+                var len = (p.v / total) * c;
+                svg.appendChild(
+                  svgEl("circle", {
+                    cx: 70,
+                    cy: 70,
+                    r: r,
+                    fill: "none",
+                    stroke: p.color,
+                    "stroke-width": 18,
+                    "stroke-dasharray": len + " " + (c - len),
+                    "stroke-dashoffset": -offset,
+                    transform: "rotate(-90 70 70)",
+                  }),
+                );
+                offset += len;
+              });
+            }
+            var big = svgEl("text", {
+              x: 70,
+              y: 68,
+              "text-anchor": "middle",
+              fill: "#e8edf7",
+              "font-size": 26,
+              "font-weight": 800,
+            });
+            big.textContent = String(total);
+            var small = svgEl("text", {
+              x: 70,
+              y: 88,
+              "text-anchor": "middle",
+              fill: "#8d9ab5",
+              "font-size": 11,
+            });
+            small.textContent = "total events";
+            svg.appendChild(big);
+            svg.appendChild(small);
+            donut.appendChild(svg);
+
+            var rate = $("#rate");
+            if (rate) {
+              var pct = total > 0 ? Math.round((resolved / total) * 100) : 0;
+              var track = box("track");
+              var fill = box("fill");
+              fill.style.width = pct + "%";
+              fill.style.background = "#22c55e";
+              track.appendChild(fill);
+              var wrap = box("bar-row");
+              wrap.style.gridTemplateColumns = "1fr";
+              wrap.style.margin = "8px 0 0";
+              wrap.appendChild(track);
+              rate.appendChild(box("muted", "Resolution rate"));
+              rate.appendChild(box("big", pct + "%"));
+              rate.appendChild(wrap);
+            }
+          }
+        }
+
+        // ---- severity bars, counted from the rows currently shown in the table ----
+        var sev = $("#sevbars");
+        if (sev) {
+          var counts = { HIGH: 0, MEDIUM: 0, LOW: 0 };
+          all("table tbody tr td").forEach(function (td) {
+            var m = /severity-(HIGH|MEDIUM|LOW)/.exec(td.className || "");
+            if (m) {
+              var key = m[1];
+              counts[key] += 1;
+            }
+          });
+          var max = Math.max(1, counts.HIGH, counts.MEDIUM, counts.LOW);
+          var colors = { HIGH: "#ef4444", MEDIUM: "#f59e0b", LOW: "#22c55e" };
+          ["HIGH", "MEDIUM", "LOW"].forEach(function (k) {
+            var row = box("bar-row");
+            var name = document.createElement("span");
+            name.textContent = k;
+            var track2 = box("track");
+            var fill2 = box("fill");
+            fill2.style.width = Math.round((counts[k] / max) * 100) + "%";
+            fill2.style.background = colors[k];
+            track2.appendChild(fill2);
+            var count = document.createElement("b");
+            count.textContent = String(counts[k]);
+            row.appendChild(name);
+            row.appendChild(track2);
+            row.appendChild(count);
+            sev.appendChild(row);
+          });
+        }
+
+        // ---- tidy ISO timestamps (full value stays in the tooltip) ----
+        all("td.ts").forEach(function (td) {
+          var raw = (td.textContent || "").trim();
+          if (raw.length >= 16) {
+            if (raw.charAt(10) === "T") {
+              td.setAttribute("title", raw);
+              td.textContent =
+                raw.substring(0, 10) + " " + raw.substring(11, 16);
+            }
+          }
+        });
+      })();
+    </script>
   </body>
 </html>
