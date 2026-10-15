@@ -110,7 +110,7 @@ pipeline {
         stage('Deploy Container') {
             steps {
                 bat "docker rm -f ${env.CONTAINER_NAME} || exit /b 0"
-                bat "docker runbat "docker run -d --restart unless-stopped --name ${env.CONTAINER_NAME} -p ${params.CONTAINER_PORT}:8081 ${params.DOCKER_USER}/${env.IMAGE_NAME}:${env.IMAGE_VERSION}" ${params.DOCKER_USER}/${env.IMAGE_NAME}:${env.IMAGE_VERSION}"
+                bat "docker run -d --restart unless-stopped --name ${env.CONTAINER_NAME} -p ${params.CONTAINER_PORT}:8081 ${params.DOCKER_USER}/${env.IMAGE_NAME}:${env.IMAGE_VERSION}"
             }
         }
 
