@@ -160,7 +160,7 @@ pipeline {
                 }
 
                 $checks = @(
-                    @{ Path="/events";     User="";         Pass="";            Expect=302; Label="anonymous -> login redirect" },
+                    @{ Path="/events";     User="";         Pass="";            Expect=401; Label="anonymous -> denied (401 unauthorized)" },
                     @{ Path="/events";     User="viewer";   Pass="viewer123";   Expect=200; Label="viewer can see dashboard" },
                     @{ Path="/events/new"; User="viewer";   Pass="viewer123";   Expect=403; Label="viewer cannot log events" },
                     @{ Path="/events/new"; User="operator"; Pass="operator123"; Expect=200; Label="operator can log events" },
