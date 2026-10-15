@@ -23,11 +23,6 @@ import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Week 9 - Selenium WebDriver suite for the Shop-Floor Andon Dashboard.
- * Five critical user journeys (TC-01 .. TC-05). Failure screenshots are saved to
- * target/selenium-screenshots/ by the ScreenshotOnFailure extension.
- */
 @ExtendWith(ScreenshotOnFailure.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public class AndonDashboardSeleniumTest {
@@ -52,6 +47,7 @@ public class AndonDashboardSeleniumTest {
         driver = new ChromeDriver(options);
         driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
         baseUrl = "http://localhost:" + port;
+        loginAs("admin", "admin123");
     }
 
     @AfterEach
@@ -61,18 +57,23 @@ public class AndonDashboardSeleniumTest {
         }
     }
 
-    /** Unique station name so tests never collide on shared in-memory data. */
+    private void loginAs(String user, String pass) {
+        driver.get(baseUrl + "/login");
+        driver.findElement(By.name("username")).sendKeys(user);
+        driver.findElement(By.name("password")).sendKeys(pass);
+        driver.findElement(By.cssSelector("button[type=submit]")).click();
+        waitForEventsList();
+    }
+
     private String uniqueStation(String base) {
         return base + " #" + (System.currentTimeMillis() % 100000);
     }
 
-    /** Waits until the post-submit redirect to the events list has completed. */
     private void waitForEventsList() {
         new WebDriverWait(driver, Duration.ofSeconds(10))
             .until(ExpectedConditions.urlMatches(EVENTS_URL_REGEX));
     }
 
-    /** Fills and submits the new-event form, then waits for the redirect. */
     private void logEvent(String station, String issueType) {
         driver.get(baseUrl + "/events/new");
         driver.findElement(By.name("station")).sendKeys(station);
@@ -81,7 +82,7 @@ public class AndonDashboardSeleniumTest {
         waitForEventsList();
     }
 
-    // TC-01: Dashboard loads with correct title and heading
+    // TC-01
     @Test
     void testDashboardLoads() {
         driver.get(baseUrl + "/events");
@@ -89,28 +90,25 @@ public class AndonDashboardSeleniumTest {
         assertTrue(driver.findElement(By.tagName("h1")).getText().contains("Shop-Floor Andon Dashboard"));
     }
 
-    // TC-02: Log a new event end-to-end
+    // TC-02
     @Test
     void testLogNewEvent() {
         String station = uniqueStation("Line 3 - Assembly");
         logEvent(station, "Machine Breakdown");
-
-        assertTrue(driver.getCurrentUrl().matches(EVENTS_URL_REGEX),
-                   "URL was: " + driver.getCurrentUrl());
+        assertTrue(driver.getCurrentUrl().matches(EVENTS_URL_REGEX), "URL was: " + driver.getCurrentUrl());
         assertTrue(driver.getPageSource().contains(station));
     }
 
-    // TC-03: Search filters events
+    // TC-03
     @Test
     void testSearchEvents() {
         String station = uniqueStation("Line 5 - Packing");
         logEvent(station, "Material Shortage");
-
         driver.get(baseUrl + "/events?q=Packing");
         assertTrue(driver.getPageSource().contains(station));
     }
 
-    // TC-04: Drill-down into event detail and update status
+    // TC-04
     @Test
     void testDrillDownAndUpdateStatus() {
         String station = uniqueStation("Line 2 - Welding");
@@ -120,8 +118,6 @@ public class AndonDashboardSeleniumTest {
               .findElement(By.linkText("View")).click();
         assertTrue(driver.getPageSource().contains(station));
 
-        // The app reloads the detail page (/events/{id}) after saving, so wait for
-        // the old form to go stale instead of waiting for the /events list URL.
         WebElement statusField = driver.findElement(By.name("status"));
         new Select(statusField).selectByValue("RESOLVED");
         driver.findElement(By.tagName("button")).click();
@@ -133,7 +129,7 @@ public class AndonDashboardSeleniumTest {
         assertTrue(rowText.toUpperCase().contains("RESOLVED"), "Row was: " + rowText);
     }
 
-    // TC-05: Critical alert appears for HIGH severity open issue
+    // TC-05
     @Test
     void testCriticalAlertAppears() {
         String station = uniqueStation("Line 4 - Paint");
@@ -149,7 +145,28 @@ public class AndonDashboardSeleniumTest {
         assertTrue(driver.getPageSource().contains(station));
     }
 
-    /** Called automatically by ScreenshotOnFailure when a test fails. */
+    // TC-06: anonymous users are sent to login
+    @Test
+    void testAnonymousRedirectedToLogin() {
+        driver.manage().deleteAllCookies();
+        driver.get(baseUrl + "/events");
+        assertTrue(driver.getCurrentUrl().contains("/login"), "URL was: " + driver.getCurrentUrl());
+    }
+
+    // TC-07: viewer is read-only
+    @Test
+    void testViewerIsReadOnly() {
+        driver.manage().deleteAllCookies();
+        loginAs("viewer", "viewer123");
+
+        assertFalse(driver.getPageSource().contains("Log New Event"),
+                    "Viewer should not see the Log New Event button");
+
+        driver.get(baseUrl + "/events/new");
+        assertTrue(driver.getPageSource().contains("403"),
+                   "Expected a 403 page for viewer on /events/new");
+    }
+
     void takeScreenshotOnFailure(String testName) {
         try {
             File screenshot = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);

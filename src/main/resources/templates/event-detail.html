@@ -1,5 +1,9 @@
 <!doctype html>
-<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<html
+  xmlns:th="http://www.thymeleaf.org"
+  xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+  lang="en"
+>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -536,6 +540,25 @@
         color: var(--text);
       }
 
+      /* ---------- login / logout (RBAC) ---------- */
+      input.logout {
+        width: 100%;
+        margin-top: 10px;
+        padding: 9px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #15203a;
+        color: var(--text);
+        font-weight: 700;
+        font-family: inherit;
+        cursor: pointer;
+      }
+      .who {
+        margin-top: 8px;
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+
       /* ---------- responsive ---------- */
       @media (max-width: 1100px) {
         .grid3 {
@@ -586,8 +609,19 @@
         </div>
         <nav class="nav">
           <a th:href="@{/events}">Dashboard</a>
-          <a class="n-new" th:href="@{/events/new}">New Event</a>
+          <a
+            class="n-new"
+            th:href="@{/events/new}"
+            sec:authorize="hasAnyRole('OPERATOR','SUPERVISOR','ADMIN')"
+            >New Event</a
+          >
         </nav>
+        <div class="who">
+          Signed in as <b sec:authentication="name">user</b>
+        </div>
+        <form th:action="@{/logout}" method="post">
+          <input type="submit" class="logout" value="Log out" />
+        </form>
       </aside>
 
       <main class="main">
@@ -631,6 +665,7 @@
 
           <form
             class="status-form"
+            sec:authorize="hasAnyRole('SUPERVISOR','ADMIN')"
             th:action="@{'/events/' + ${event.id} + '/status'}"
             method="post"
           >

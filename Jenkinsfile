@@ -5,10 +5,14 @@ pipeline {
         disableConcurrentBuilds()
     }
 
+    triggers {
+        pollSCM('H/2 * * * *')
+    }
+
     parameters {
         string(name: 'PORT', defaultValue: '8081', description: 'Port for the jar deployment (Week 8)')
         string(name: 'DOCKER_USER', defaultValue: 'gauriic20', description: 'Docker Hub username')
-        string(name: 'CONTAINER_PORT', defaultValue: '8083', description: 'Host port for the Docker container deployment')
+        string(name: 'CONTAINER_PORT', defaultValue: '8083', description: 'Host port for the Docker container deployment (80 = http://localhost)')
     }
 
     environment {
@@ -106,14 +110,14 @@ pipeline {
         stage('Deploy Container') {
             steps {
                 bat "docker rm -f ${env.CONTAINER_NAME} || exit /b 0"
-                bat "docker run -d --name ${env.CONTAINER_NAME} -p ${params.CONTAINER_PORT}:8081 ${params.DOCKER_USER}/${env.IMAGE_NAME}:${env.IMAGE_VERSION}"
+                bat "docker runbat "docker run -d --restart unless-stopped --name ${env.CONTAINER_NAME} -p ${params.CONTAINER_PORT}:8081 ${params.DOCKER_USER}/${env.IMAGE_NAME}:${env.IMAGE_VERSION}" ${params.DOCKER_USER}/${env.IMAGE_NAME}:${env.IMAGE_VERSION}"
             }
         }
 
         stage('Verify Container') {
             steps {
                 powershell """
-                \$url = "http://localhost:${params.CONTAINER_PORT}/events"
+                \$url = "http://localhost:${params.CONTAINER_PORT}/health"
                 \$ok = \$false
                 for (\$i = 1; \$i -le 15; \$i++) {
                     try {
@@ -132,6 +136,49 @@ pipeline {
                     exit 1
                 }
                 """
+            }
+        }
+
+        stage('Verify RBAC') {
+            steps {
+                powershell '''
+                $base = "http://localhost:$env:CONTAINER_PORT"
+
+                function Get-Code($path, $user, $pass) {
+                    $h = @{}
+                    if ($user) {
+                        $tok = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("${user}:${pass}"))
+                        $h["Authorization"] = "Basic $tok"
+                    }
+                    try {
+                        $r = Invoke-WebRequest -Uri "$base$path" -Headers $h -UseBasicParsing -MaximumRedirection 0 -TimeoutSec 10
+                        return [int]$r.StatusCode
+                    } catch {
+                        if ($_.Exception.Response) { return [int]$_.Exception.Response.StatusCode }
+                        return -1
+                    }
+                }
+
+                $checks = @(
+                    @{ Path="/events";     User="";         Pass="";            Expect=302; Label="anonymous -> login redirect" },
+                    @{ Path="/events";     User="viewer";   Pass="viewer123";   Expect=200; Label="viewer can see dashboard" },
+                    @{ Path="/events/new"; User="viewer";   Pass="viewer123";   Expect=403; Label="viewer cannot log events" },
+                    @{ Path="/events/new"; User="operator"; Pass="operator123"; Expect=200; Label="operator can log events" },
+                    @{ Path="/events";     User="admin";    Pass="admin123";    Expect=200; Label="admin can see dashboard" }
+                )
+
+                $fail = $false
+                foreach ($c in $checks) {
+                    $code = Get-Code $c.Path $c.User $c.Pass
+                    if ($code -eq $c.Expect) {
+                        Write-Output "PASS: $($c.Label) ($code)"
+                    } else {
+                        Write-Output "FAIL: $($c.Label) expected $($c.Expect) got $code"
+                        $fail = $true
+                    }
+                }
+                if ($fail) { exit 1 }
+                '''
             }
         }
     }

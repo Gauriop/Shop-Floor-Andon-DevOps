@@ -1,0 +1,89 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Shop-Floor Andon Dashboard - Sign in</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        background: #0b1220;
+        color: #e8edf7;
+        display: flex;
+        min-height: 100vh;
+        align-items: center;
+        justify-content: center;
+        margin: 0;
+      }
+      .card {
+        background: #111a2e;
+        border: 1px solid #1e2b47;
+        padding: 2rem;
+        border-radius: 14px;
+        width: 330px;
+      }
+      h1 {
+        font-size: 1.2rem;
+        margin-top: 0;
+      }
+      label {
+        display: block;
+        margin-top: 1rem;
+        font-size: 0.85rem;
+        color: #8d9ab5;
+      }
+      input {
+        width: 100%;
+        padding: 0.65rem;
+        margin-top: 0.3rem;
+        border-radius: 8px;
+        border: 1px solid #1e2b47;
+        background: #0d1628;
+        color: #e8edf7;
+        box-sizing: border-box;
+      }
+      button {
+        width: 100%;
+        margin-top: 1.5rem;
+        padding: 0.75rem;
+        border: 0;
+        border-radius: 8px;
+        background: #f59e0b;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .msg {
+        margin-top: 1rem;
+        padding: 0.6rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+      }
+      .err {
+        background: #7f1d1d;
+      }
+      .ok {
+        background: #064e3b;
+      }
+      .hint {
+        margin-top: 1.2rem;
+        font-size: 0.75rem;
+        color: #8d9ab5;
+      }
+    </style>
+  </head>
+  <body>
+    <form class="card" th:action="@{/login}" method="post">
+      <h1>Shop-Floor Andon Dashboard</h1>
+      <div class="msg err" th:if="${param.error}">
+        Invalid username or password.
+      </div>
+      <div class="msg ok" th:if="${param.logout}">
+        You have been logged out.
+      </div>
+      <label>Username <input type="text" name="username" autofocus /></label>
+      <label>Password <input type="password" name="password" /></label>
+      <button type="submit">Sign in</button>
+      <div class="hint">Roles: viewer, operator, supervisor, admin</div>
+    </form>
+  </body>
+</html>
